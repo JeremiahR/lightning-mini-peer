@@ -6,9 +6,11 @@ edition = "2021"
 [dependencies]
 bitcoin = "0.32.5"
 bitcoin_hashes = "0.16.0"
+dnssec-prover = "0.6.6"
 hashbrown = "0.15.2"
-lightning = "0.1.1"
+lightning = { path = "../rust-lightning/lightning" }
 possiblyrandom = "0.2.0"
+secp256k1 = "0.30.0"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(fuzzing)'] }
