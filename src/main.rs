@@ -141,6 +141,39 @@ impl NodeConnection {
         self.print_noise_state().await;
         Ok(public_key)
     }
+
+    async fn send_init(&mut self) -> Result<(), NodeConnectionError> {
+        let mut init = b"\x00\x10\x00\x00\x00\x01\xaa";
+        // self.peer_encryptor.encrypt_message(init).unwrap();
+        match self.write_all(init).await {
+            Ok(_) => {
+                println!("sent init");
+                Ok(())
+            }
+            Err(err) => {
+                println!("Failed to send init: {:?}", err);
+                Err(NodeConnectionError::SocketError)
+            }
+        }
+    }
+
+    async fn read_next_header(&mut self) -> Result<Vec<u8>, NodeConnectionError> {
+        let mut header = self.read_n_bytes(18).await?;
+        self.peer_encryptor
+            .decrypt_message(header.as_mut())
+            .unwrap();
+        println!("decrypted header: {:?}", hex::encode(&header));
+        let length = u16::from_be_bytes([header[0], header[1]]);
+        println!("message length: {}", length);
+        let mut message = self.read_n_bytes(length as usize + 16).await?;
+        self.peer_encryptor
+            .decrypt_message(message.as_mut())
+            .unwrap();
+        println!("decrypted message: {:?}", hex::encode(&message));
+        let type_id = u16::from_be_bytes([message[0], message[1]]);
+        println!("message type: {}", type_id);
+        Ok(header)
+    }
 }
 
 //     let mut buffer = [0; 66];
@@ -175,6 +208,20 @@ async fn main() {
             return;
         }
     };
+    match node_conn.send_init().await {
+        Ok(_) => (),
+        Err(err) => {
+            println!("Failed to send init: {:?}", err);
+            return;
+        }
+    }
+    match node_conn.read_next_header().await {
+        Ok(_) => (),
+        Err(err) => {
+            println!("Failed to read: {:?}", err);
+            return;
+        }
+    }
 
     // let mut buffer = [0; 512];
     // let n = stream.read(&mut buffer).unwrap();
