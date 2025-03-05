@@ -116,6 +116,94 @@ impl Serializable for U16SerializedElement {
 }
 
 #[derive(Debug)]
+pub struct Bytes64Element {
+    data: [u8; 64],
+}
+
+impl Serializable for Bytes64Element {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+        if data.len() < 64 {
+            return Err("Not enough data to read a signature".to_string());
+        }
+        let mut bytes = [0u8; 64];
+        bytes.copy_from_slice(&data[..64]);
+        Ok((Bytes64Element { data: bytes }, &data[64..]))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.data.to_vec()
+    }
+}
+
+pub type SignatureElement = Bytes64Element;
+
+#[derive(Debug)]
+pub struct Bytes32Element {
+    data: [u8; 32],
+}
+
+impl Serializable for Bytes32Element {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+        if data.len() < 32 {
+            return Err("Not enough data to read a signature".to_string());
+        }
+        let mut bytes = [0u8; 32];
+        bytes.copy_from_slice(&data[..32]);
+        Ok((Bytes32Element { data: bytes }, &data[32..]))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.data.to_vec()
+    }
+}
+
+pub type ChainHashElement = Bytes32Element;
+
+#[derive(Debug)]
+pub struct Bytes33Element {
+    data: [u8; 33],
+}
+
+impl Serializable for Bytes33Element {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+        if data.len() < 33 {
+            return Err("Not enough data to read a signature".to_string());
+        }
+        let mut bytes = [0u8; 33];
+        bytes.copy_from_slice(&data[..33]);
+        Ok((Bytes33Element { data: bytes }, &data[33..]))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.data.to_vec()
+    }
+}
+
+pub type PointElement = Bytes33Element;
+
+#[derive(Debug)]
+pub struct Bytes8Element {
+    data: [u8; 8],
+}
+
+impl Serializable for Bytes8Element {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+        if data.len() < 8 {
+            return Err("Not enough data to read a signature".to_string());
+        }
+        let mut bytes = [0u8; 8];
+        bytes.copy_from_slice(&data[..8]);
+        Ok((Bytes8Element { data: bytes }, &data[8..]))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.data.to_vec()
+    }
+}
+
+pub type ShortChannelIDElement = Bytes8Element;
+
+#[derive(Debug)]
 pub struct RemainderElement {
     data: Vec<u8>,
 }
@@ -143,6 +231,10 @@ pub enum SerializableTypes {
     U16Element,
     U16SizedBytes,
     TLVStream,
+    Signature,
+    ChainHash,
+    ShortChannelID,
+    Point,
 }
 
 #[derive(Debug)]
@@ -151,6 +243,10 @@ pub enum SerializableElement {
     U16SizedBytes(U16SizedBytesElement),
     TLVStream(TLVStreamElement),
     U16Element(U16SerializedElement),
+    ChainHash(ChainHashElement),
+    ShortChannelID(ShortChannelIDElement),
+    Point(PointElement),
+    Signature(SignatureElement),
 }
 
 impl SerializableElement {
@@ -172,6 +268,22 @@ impl SerializableElement {
                 let (res, data) = TLVStreamElement::from_bytes(data).unwrap();
                 Ok((SerializableElement::TLVStream(res), data))
             }
+            SerializableElement::ChainHash(_) => {
+                let (res, data) = ChainHashElement::from_bytes(data).unwrap();
+                Ok((SerializableElement::ChainHash(res), data))
+            }
+            SerializableElement::ShortChannelID(_) => {
+                let (res, data) = ShortChannelIDElement::from_bytes(data).unwrap();
+                Ok((SerializableElement::ShortChannelID(res), data))
+            }
+            SerializableElement::Point(_) => {
+                let (res, data) = PointElement::from_bytes(data).unwrap();
+                Ok((SerializableElement::Point(res), data))
+            }
+            SerializableElement::Signature(_) => {
+                let (res, data) = SignatureElement::from_bytes(data).unwrap();
+                Ok((SerializableElement::Signature(res), data))
+            }
         }
     }
 
@@ -181,6 +293,10 @@ impl SerializableElement {
             SerializableElement::U16SizedBytes(element) => element.to_bytes(),
             SerializableElement::TLVStream(element) => element.to_bytes(),
             SerializableElement::U16Element(element) => element.to_bytes(),
+            SerializableElement::ChainHash(element) => element.to_bytes(),
+            SerializableElement::ShortChannelID(element) => element.to_bytes(),
+            SerializableElement::Point(element) => element.to_bytes(),
+            SerializableElement::Signature(element) => element.to_bytes(),
         }
     }
 }

@@ -1,11 +1,15 @@
 use std::collections::HashMap;
 
 use crate::message_types::MessageTypeEnum;
+use crate::serialization::ChainHashElement;
 use crate::serialization::MessageTypeElement;
+use crate::serialization::PointElement;
 use crate::serialization::RemainderElement;
 use crate::serialization::Serializable;
 use crate::serialization::SerializableElement;
 use crate::serialization::SerializableTypes;
+use crate::serialization::ShortChannelIDElement;
+use crate::serialization::SignatureElement;
 use crate::serialization::TLVStreamElement;
 use crate::serialization::U16SerializedElement;
 use crate::serialization::U16SizedBytesElement;
@@ -23,6 +27,17 @@ enum MessageElement {
     TLVStream,
     NumPongBytes,
     Ignored,
+    NodeSignature1,
+    NodeSignature2,
+    BitcoinSignature1,
+    BitcoinSignature2,
+    Features,
+    ChainHash,
+    ShortChannelID,
+    NodeId1,
+    NodeId2,
+    BitcoinKey1,
+    BitcoinKey2,
 }
 
 type MessageStructurePair = (MessageElement, SerializableTypes);
@@ -72,6 +87,31 @@ impl Message {
                     (MessageElement::Ignored, SerializableTypes::U16SizedBytes),
                 ],
             )),
+            Ok(MessageTypeEnum::ChannelAnnouncement) => Ok((
+                MessageTypeEnum::ChannelAnnouncement,
+                vec![
+                    (MessageElement::NodeSignature1, SerializableTypes::Signature),
+                    (MessageElement::NodeSignature2, SerializableTypes::Signature),
+                    (
+                        MessageElement::BitcoinSignature1,
+                        SerializableTypes::Signature,
+                    ),
+                    (
+                        MessageElement::BitcoinSignature2,
+                        SerializableTypes::Signature,
+                    ),
+                    (MessageElement::Features, SerializableTypes::U16SizedBytes),
+                    (MessageElement::ChainHash, SerializableTypes::ChainHash),
+                    (
+                        MessageElement::ShortChannelID,
+                        SerializableTypes::ShortChannelID,
+                    ),
+                    (MessageElement::NodeId1, SerializableTypes::Point),
+                    (MessageElement::NodeId2, SerializableTypes::Point),
+                    (MessageElement::BitcoinKey1, SerializableTypes::Point),
+                    (MessageElement::BitcoinKey2, SerializableTypes::Point),
+                ],
+            )),
             Ok(_) => Ok((MessageTypeEnum::Unknown, vec![])),
             Err(_) => {
                 println!("Unknown message type");
@@ -92,6 +132,10 @@ impl Message {
                     let (obj, bytes) = MessageTypeElement::from_bytes(bytes).unwrap();
                     (SerializableElement::MessageType(obj), bytes)
                 }
+                SerializableTypes::U16Element => {
+                    let (obj, bytes) = U16SerializedElement::from_bytes(bytes).unwrap();
+                    (SerializableElement::U16Element(obj), bytes)
+                }
                 SerializableTypes::U16SizedBytes => {
                     let (obj, bytes) = U16SizedBytesElement::from_bytes(bytes).unwrap();
                     (SerializableElement::U16SizedBytes(obj), bytes)
@@ -100,9 +144,21 @@ impl Message {
                     let (obj, bytes) = TLVStreamElement::from_bytes(bytes).unwrap();
                     (SerializableElement::TLVStream(obj), bytes)
                 }
-                SerializableTypes::U16Element => {
-                    let (obj, bytes) = U16SerializedElement::from_bytes(bytes).unwrap();
-                    (SerializableElement::U16Element(obj), bytes)
+                SerializableTypes::Signature => {
+                    let (obj, bytes) = SignatureElement::from_bytes(bytes).unwrap();
+                    (SerializableElement::Signature(obj), bytes)
+                }
+                SerializableTypes::ChainHash => {
+                    let (obj, bytes) = ChainHashElement::from_bytes(bytes).unwrap();
+                    (SerializableElement::ChainHash(obj), bytes)
+                }
+                SerializableTypes::ShortChannelID => {
+                    let (obj, bytes) = ShortChannelIDElement::from_bytes(bytes).unwrap();
+                    (SerializableElement::ShortChannelID(obj), bytes)
+                }
+                SerializableTypes::Point => {
+                    let (obj, bytes) = PointElement::from_bytes(bytes).unwrap();
+                    (SerializableElement::Point(obj), bytes)
                 }
             };
             bytes = rem_bytes;
