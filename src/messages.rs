@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
 use crate::message_types::MessageTypeEnum;
-use crate::serialization::DoesSerialize;
 use crate::serialization::MessageTypeElement;
 use crate::serialization::RemainderElement;
+use crate::serialization::Serializable;
 use crate::serialization::SerializableElement;
 use crate::serialization::SerializableTypes;
+use crate::serialization::TLVStreamElement;
 use crate::serialization::U16SizedBytesElement;
 
 #[derive(Debug)]
@@ -18,18 +19,19 @@ enum MessageElement {
     MessageType,
     GlobalFeatures,
     LocalFeatures,
+    TLVStream,
 }
 
-pub type MessageStructurePair = (MessageElement, SerializableTypes);
+type MessageStructurePair = (MessageElement, SerializableTypes);
 
 // And a list (Vec) of such tuples.
-pub type StructurePairList = Vec<MessageStructurePair>;
+type StructurePairList = Vec<MessageStructurePair>;
 
 #[derive(Debug)]
 pub struct Message {
-    pub message_type: MessageTypeEnum,
-    pub elements: HashMap<MessageElement, SerializableElement>,
-    pub element_order: Vec<MessageElement>,
+    message_type: MessageTypeEnum,
+    elements: HashMap<MessageElement, SerializableElement>,
+    element_order: Vec<MessageElement>,
 }
 
 impl Message {
@@ -49,7 +51,7 @@ impl Message {
                         MessageElement::LocalFeatures,
                         SerializableTypes::U16SizedBytes,
                     ),
-                    // ("remainder".to_string(), SerializableTypes::Remainder),
+                    (MessageElement::TLVStream, SerializableTypes::TLVStream),
                 ],
             )),
             Ok(_) => Ok((MessageTypeEnum::Unknown, vec![])),
@@ -76,9 +78,9 @@ impl Message {
                     let (obj, bytes) = U16SizedBytesElement::from_bytes(bytes).unwrap();
                     (SerializableElement::U16SizedBytes(obj), bytes)
                 }
-                SerializableTypes::Remainder => {
-                    let (obj, bytes) = RemainderElement::from_bytes(bytes).unwrap();
-                    (SerializableElement::Remainder(obj), bytes)
+                SerializableTypes::TLVStream => {
+                    let (obj, bytes) = TLVStreamElement::from_bytes(bytes).unwrap();
+                    (SerializableElement::TLVStream(obj), bytes)
                 }
             };
             bytes = rem_bytes;

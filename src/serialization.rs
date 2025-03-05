@@ -6,7 +6,7 @@ enum SerializationError {
     Error,
 }
 
-pub trait DoesSerialize: Sized {
+pub trait Serializable: Sized {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String>;
     fn to_bytes(&self) -> Vec<u8>;
 }
@@ -30,7 +30,7 @@ impl MessageTypeElement {
     }
 }
 
-impl DoesSerialize for MessageTypeElement {
+impl Serializable for MessageTypeElement {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
         if data.len() < 2 {
             return Err("Not enough data to read a u16".to_string());
@@ -55,7 +55,7 @@ pub struct U16SizedBytesElement {
     data: Vec<u8>,
 }
 
-impl DoesSerialize for U16SizedBytesElement {
+impl Serializable for U16SizedBytesElement {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
         if data.len() < 2 {
             return Err("Not enough data to read a u16".to_string());
@@ -83,7 +83,7 @@ pub struct RemainderElement {
     data: Vec<u8>,
 }
 
-impl DoesSerialize for RemainderElement {
+impl Serializable for RemainderElement {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
         Ok((
             RemainderElement {
@@ -98,18 +98,20 @@ impl DoesSerialize for RemainderElement {
     }
 }
 
+pub type TLVStreamElement = RemainderElement;
+
 #[derive(Debug)]
 pub enum SerializableTypes {
     MessageType,
     U16SizedBytes,
-    Remainder,
+    TLVStream,
 }
 
 #[derive(Debug)]
 pub enum SerializableElement {
     MessageType(MessageTypeElement),
     U16SizedBytes(U16SizedBytesElement),
-    Remainder(RemainderElement),
+    TLVStream(TLVStreamElement),
 }
 
 impl SerializableElement {
@@ -123,9 +125,9 @@ impl SerializableElement {
                 let (res, data) = U16SizedBytesElement::from_bytes(data).unwrap();
                 Ok((SerializableElement::U16SizedBytes(res), data))
             }
-            SerializableElement::Remainder(_) => {
-                let (res, data) = RemainderElement::from_bytes(data).unwrap();
-                Ok((SerializableElement::Remainder(res), data))
+            SerializableElement::TLVStream(_) => {
+                let (res, data) = TLVStreamElement::from_bytes(data).unwrap();
+                Ok((SerializableElement::TLVStream(res), data))
             }
         }
     }
@@ -134,7 +136,7 @@ impl SerializableElement {
         match self {
             SerializableElement::MessageType(element) => element.to_bytes(),
             SerializableElement::U16SizedBytes(element) => element.to_bytes(),
-            SerializableElement::Remainder(element) => element.to_bytes(),
+            SerializableElement::TLVStream(element) => element.to_bytes(),
         }
     }
 }
