@@ -13,4 +13,20 @@ Setup a lightning network in Polar. Copy the "P2P External" address of one node,
 
 Run `cargo run <nodeid>`
 
-Right now all it does is handshake with the node. More features being added now.
+# Todos
+
+- De/serialize pings, pongs, inits, and basic message types.
+- Send pings, recieve pongs.
+- De/serialize gossip and channel messages.
+- Interrogate connected node(s) to learn about more nodes.
+- Interrogate connected node(s) to learn about channels.
+
+# Spec
+
+- What are we building?
+    > Lightning "minipeer" like the bitcoin one (use library for noise protocol), implement as many P2P exchanges as you can
+- Per Carla:
+    > LDK does a whole lot under the hood that you don't want for a node like this - connecting to a bitcoin node, validating UTXOs etc.
+    > For this project we're essentially thinking about the most lightweight, low effort shell of a lightning node that one could feasibly put up.
+    > For example, if you're a researcher who'e interested in figuring out the parameters for minisketch gossip in lightning - you could just spin up a few of these and record whatever you see on the gossip network without having to bother with a bitcoin node at all.
+    > You'll def want to re-use components like the bolt-8 handshake, because that's as lightweight as is gets already, but for the other protocol messages there's a lot that can be cut out.

@@ -4,7 +4,7 @@ use crate::util::parse_node;
 use crate::node_connection::NodeConnection;
 use std::env;
 
-mod message_handler;
+mod messages;
 mod message_types;
 mod node;
 mod node_connection;
