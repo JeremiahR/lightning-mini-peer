@@ -1,33 +1,26 @@
-use crate::message_types::MessageTypes;
-use std::collections::HashMap;
-use strum::IntoEnumIterator;
+use crate::serialization::MessageTypeElement;
+use crate::serialization::SerializedElement;
 
-struct Message {
+pub struct Message {
     msg_type: u16,
     name: String,
 }
 
 impl Message {
-    // it's lazy to do this every time, but it can be optimized later
-    fn enum_name_lookup() -> HashMap<i32, String> {
-        let mut map = HashMap::new();
-        for variant in MessageTypes::iter() {
-            let name: &str = variant.clone().into();
-            let name = name.to_lowercase();
-            map.insert(variant.clone() as i32, name);
+    fn type_to_structure(msg_type: u16) -> String {
+        match msg_type {
+            16 => "init".to_string(),
+            _ => "unknown".to_string(),
         }
-        map
     }
 
     pub fn message_from_bytes(bytes: &[u8]) -> Message {
-        let msg_type = u16::from_be_bytes([bytes[0], bytes[1]]);
-        let lookup = Self::enum_name_lookup();
-        let name = match lookup.get(&(msg_type as i32)) {
-            Some(name) => name.to_string(),
-            None => "unknown".to_string(),
-        };
-        println!("message type: {}", msg_type);
-        Message { msg_type, name }
+        let (m, bytes) = MessageTypeElement::from_bytes(bytes).unwrap();
+        println!("message type: {:?}", m);
+        Message {
+            msg_type: m.id,
+            name: m.name,
+        }
     }
 }
 

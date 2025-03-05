@@ -4,10 +4,11 @@ use crate::util::parse_node;
 use crate::node_connection::NodeConnection;
 use std::env;
 
-mod messages;
 mod message_types;
+mod messages;
 mod node;
 mod node_connection;
+mod serialization;
 mod util;
 mod vendor;
 

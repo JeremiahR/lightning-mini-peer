@@ -2,7 +2,7 @@
 use strum_macros::{EnumIter, IntoStaticStr};
 
 #[derive(Debug, EnumIter, Clone, IntoStaticStr)]
-pub enum MessageTypes {
+pub enum MessageTypeEnum {
     Warning = 1,
     Stfu = 2,
     // connection and keep alive
