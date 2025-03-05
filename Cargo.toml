@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 bitcoin = { version = "0.32.5", features = ["rand"] }
+hex = "0.4.3"
 lightning = { path = "../rust-lightning/lightning" }
 secp256k1 = { version = "0.30.0", features = ["rand"] }
 
