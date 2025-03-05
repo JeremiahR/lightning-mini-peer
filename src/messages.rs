@@ -46,6 +46,8 @@ enum MessageElement {
     SyncComplete,
     QueryChannelRangeTLVs,
     ReplyChannelRangeTLVs,
+    FirstTimestamp,
+    TimestampRange,
 }
 
 type MessageStructurePair = (MessageElement, SerializableTypes);
@@ -160,6 +162,17 @@ impl Message {
                 (
                     MessageElement::ReplyChannelRangeTLVs,
                     SerializableTypes::TLVStream,
+                ),
+            ],
+            MessageTypeEnum::GossipTimestampFilter => vec![
+                (MessageElement::ChainHash, SerializableTypes::ChainHash),
+                (
+                    MessageElement::FirstTimestamp,
+                    SerializableTypes::U32Element,
+                ),
+                (
+                    MessageElement::TimestampRange,
+                    SerializableTypes::U32Element,
                 ),
             ],
             _ => vec![],
