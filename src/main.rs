@@ -1,4 +1,4 @@
-use messages::MessageDecoder;
+use messages::Message;
 
 use crate::util::new_random_secret_key;
 use crate::util::parse_node;
@@ -45,7 +45,7 @@ async fn main() {
     match node_conn.get_next_message().await {
         Ok(bytes) => {
             println!("Received bytes: {:?}", bytes);
-            let res = MessageDecoder::from_bytes(bytes.as_slice());
+            let res = Message::from_bytes(bytes.as_slice());
             println!("Received message: {:?}", res);
         }
         Err(err) => {
