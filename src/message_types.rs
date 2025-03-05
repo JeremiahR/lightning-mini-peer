@@ -1,8 +1,11 @@
 // use strum::{EnumIter, IntoStaticStr};
+use num_enum::TryFromPrimitive;
 use strum_macros::{EnumIter, IntoStaticStr};
 
-#[derive(Debug, EnumIter, Clone, IntoStaticStr)]
+#[derive(Debug, EnumIter, Clone, PartialEq, IntoStaticStr, TryFromPrimitive)]
+#[repr(u16)]
 pub enum MessageTypeEnum {
+    Unknown = 0,
     Warning = 1,
     Stfu = 2,
     // connection and keep alive

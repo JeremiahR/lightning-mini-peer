@@ -154,8 +154,6 @@ impl NodeConnection {
             .decrypt_message(message.as_mut())
             .unwrap();
         println!("decrypted message: {:?}", hex::encode(&message));
-        let type_id = u16::from_be_bytes([message[0], message[1]]);
-        println!("message type: {}", type_id);
-        Ok(header)
+        Ok(message)
     }
 }
