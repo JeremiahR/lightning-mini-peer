@@ -1,80 +1,180 @@
 use crate::util::new_random_secret_key;
 use crate::util::parse_node;
 use crate::vendor::KeysManager;
-use crate::vendor::MiniPeerConnection;
 use bitcoin::secp256k1::PublicKey as BitcoinPublicKey;
 use bitcoin::secp256k1::Secp256k1;
 use bitcoin::secp256k1::SecretKey;
-use hex;
-use std::sync::Arc;
+use bitcoin::secp256k1::SignOnly;
 
 use crate::vendor::PeerChannelEncryptor;
+use hex;
 use node::Node;
 use std::env;
-use std::str::FromStr;
+use std::sync::Arc;
 
 mod node;
 mod util;
 mod vendor;
 
-use std::io::{Read, Write};
-use std::net::TcpStream;
+use lightning::ln::peer_channel_encryptor::NextNoiseStep;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
+
+#[derive(Debug)]
+enum NodeConnectionError {
+    SocketError,
+}
 
 struct NodeConnection {
     node_public_key: BitcoinPublicKey,
     stream: TcpStream,
+    secp: Secp256k1<SignOnly>,
+    ephemeral_key: SecretKey,
     peer_encryptor: PeerChannelEncryptor,
+    km: Arc<KeysManager>,
 }
 
-fn handshake(node: &Node, node_secret_key: SecretKey) -> NodeConnection {
-    let address = format!("{}:{}", node.ip_address, node.port);
-    let secp_ctx = Secp256k1::signing_only();
-    let remote_public_key = BitcoinPublicKey::from_str(&node.public_key).unwrap();
-    let mut km = Arc::new(KeysManager::new(&node_secret_key.secret_bytes(), 0, 0));
-    let mp = MiniPeerConnection::new(secp_ctx.clone(), new_random_secret_key());
-    let mut peer_encryptor = mp.new_peer_connector(remote_public_key);
-    let mut stream = TcpStream::connect(&address).unwrap();
+impl NodeConnection {
+    async fn new(node: &Node, node_secret_key: SecretKey) -> Result<Self, NodeConnectionError> {
+        let ephemeral_key = new_random_secret_key();
+        let stream = match TcpStream::connect(node.address()).await {
+            Ok(stream) => stream,
+            Err(err) => {
+                println!("Failed to connect to {}: {}", node.address(), err);
+                return Err(NodeConnectionError::SocketError);
+            }
+        };
+        println!("Connected to {}", node.address());
+        Ok(NodeConnection {
+            node_public_key: node.bitcoin_public_key(),
+            stream,
+            secp: Secp256k1::signing_only(),
+            ephemeral_key,
+            peer_encryptor: PeerChannelEncryptor::new_outbound(
+                node.bitcoin_public_key().clone(),
+                ephemeral_key,
+            ),
+            km: Arc::new(KeysManager::new(&node_secret_key.secret_bytes(), 0, 0)),
+        })
+    }
 
-    // let next_step = peer_encryptor.get_next_step();
-    // println!("Next step: {:?}", next_step);
-    println!("Connected to {}", address);
-    let act_one = peer_encryptor.get_act_one(&secp_ctx);
-    println!("Act One: {:?}", hex::encode(act_one));
-    stream.write_all(act_one.as_ref()).unwrap();
+    async fn write_all(&mut self, data: &[u8]) -> Result<(), NodeConnectionError> {
+        match self.stream.write_all(data).await {
+            Ok(_) => {
+                println!("Wrote {:?}", hex::encode(data));
+                Ok(())
+            }
+            Err(err) => {
+                println!("Failed to write data: {}", err);
+                Err(NodeConnectionError::SocketError)
+            }
+        }
+    }
 
-    let mut buffer = [0; 50];
-    let n = stream.read(&mut buffer).unwrap();
-    println!("Received: {}", hex::encode(&buffer[..n]));
-    let (act_three, public_key) = peer_encryptor
-        .process_act_two(&buffer[..n], &mut km)
-        .unwrap();
-    println!("Act Three: {:?}", hex::encode(act_three));
-    println!("Public Key: {:?}", public_key.to_string());
-    stream.write_all(act_three.as_ref()).unwrap();
+    async fn read_n_bytes(&mut self, num_bytes: usize) -> Result<Vec<u8>, NodeConnectionError> {
+        let mut buffer: Vec<u8> = vec![0; num_bytes as usize];
+        match self.stream.read(&mut buffer).await {
+            Ok(n) => {
+                let response = buffer[..n].to_vec();
+                println!("Read: {:?}", hex::encode(&response));
+                Ok(response)
+            }
+            Err(err) => {
+                println!("Failed to receive act one: {:?}", err);
+                Err(NodeConnectionError::SocketError)
+            }
+        }
+        // let act_two = self.peer_encryptor.get_act_two(&self.secp);
+        // match self.write_all(&act_two).await {
+        //     Ok(_) => Ok(()),
+        //     Err(err) => {
+        //         println!("Failed to send act two: {:?}", err);
+        //         Err(NodeConnectionError::SocketError)
+        //     }
+        // }
+    }
 
-    let mut buffer = [0; 66];
-    let n = stream.read(&mut buffer).unwrap();
-    let node_public_key = peer_encryptor.process_act_three(&buffer[..n]).unwrap();
+    async fn send_act_one(&mut self) -> Result<(), NodeConnectionError> {
+        let act_one = self.peer_encryptor.get_act_one(&self.secp);
+        match self.write_all(&act_one).await {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                println!("Failed to send act one: {:?}", err);
+                Err(NodeConnectionError::SocketError)
+            }
+        }
+    }
 
-    NodeConnection {
-        node_public_key,
-        stream,
-        peer_encryptor,
+    async fn process_act_two(
+        &mut self,
+        act_two: Vec<u8>,
+    ) -> Result<(BitcoinPublicKey), NodeConnectionError> {
+        match self.peer_encryptor.process_act_two(&act_two, &self.km) {
+            Ok((act_three, public_key)) => match self.write_all(&act_three).await {
+                Ok(_) => Ok(public_key),
+                Err(err) => {
+                    println!("Failed to send act three: {:?}", err);
+                    Err(NodeConnectionError::SocketError)
+                }
+            },
+            Err(err) => {
+                println!("Failed to process act two: {:?}", err);
+                Err(NodeConnectionError::SocketError)
+            }
+        }
+    }
+
+    async fn print_noise_state(&self) {
+        let state = match self.peer_encryptor.get_noise_step() {
+            NextNoiseStep::ActOne => "Act One",
+            NextNoiseStep::ActTwo => "Act Two",
+            NextNoiseStep::ActThree => "Act Three",
+            NextNoiseStep::NoiseComplete => "Noise Complete",
+        };
+        println!("Noise state: {}", state);
+    }
+
+    async fn handshake(&mut self) -> Result<BitcoinPublicKey, NodeConnectionError> {
+        self.send_act_one().await?;
+        let act_two = self.read_n_bytes(66).await?;
+        let public_key = self.process_act_two(act_two).await?;
+        self.print_noise_state().await;
+        Ok(public_key)
     }
 }
 
-fn main() {
+//     let mut buffer = [0; 66];
+//     let n = stream.read(&mut buffer).unwrap();
+//     let node_public_key = peer_encryptor.process_act_three(&buffer[..n]).unwrap();
+
+//     NodeConnection {
+//         node_public_key,
+//         stream,
+//         peer_encryptor,
+//     }
+// }
+
+#[tokio::main]
+async fn main() {
     let args: Vec<String> = env::args().collect();
     let node_str = args.last().unwrap();
     let node = parse_node(node_str);
     let node_secret_key = new_random_secret_key();
-    // let node_public_key = node_secret_key.public_key(&Secp256k1::signing_only());
 
-    let secp_ctx = Secp256k1::signing_only();
-
-    let mut node_conn = handshake(&node, node_secret_key);
-
-    println!("Arguments: {:?}", node);
+    let mut node_conn = match NodeConnection::new(&node, node_secret_key).await {
+        Ok(conn) => conn,
+        Err(err) => {
+            println!("Failed to create node connection: {:?}", err);
+            return;
+        }
+    };
+    match node_conn.handshake().await {
+        Ok(_) => (),
+        Err(err) => {
+            println!("Failed to handshake: {:?}", err);
+            return;
+        }
+    };
 
     // let mut buffer = [0; 512];
     // let n = stream.read(&mut buffer).unwrap();
