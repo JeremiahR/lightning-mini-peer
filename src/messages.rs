@@ -7,6 +7,7 @@ use crate::serialization::Serializable;
 use crate::serialization::SerializableElement;
 use crate::serialization::SerializableTypes;
 use crate::serialization::TLVStreamElement;
+use crate::serialization::U16SerializedElement;
 use crate::serialization::U16SizedBytesElement;
 
 #[derive(Debug)]
@@ -20,6 +21,8 @@ enum MessageElement {
     GlobalFeatures,
     LocalFeatures,
     TLVStream,
+    NumPongBytes,
+    Ignored,
 }
 
 type MessageStructurePair = (MessageElement, SerializableTypes);
@@ -54,6 +57,21 @@ impl Message {
                     (MessageElement::TLVStream, SerializableTypes::TLVStream),
                 ],
             )),
+            Ok(MessageTypeEnum::Ping) => Ok((
+                MessageTypeEnum::Ping,
+                vec![
+                    (MessageElement::MessageType, SerializableTypes::MessageType),
+                    (MessageElement::NumPongBytes, SerializableTypes::U16Element),
+                    (MessageElement::Ignored, SerializableTypes::U16SizedBytes),
+                ],
+            )),
+            Ok(MessageTypeEnum::Pong) => Ok((
+                MessageTypeEnum::Pong,
+                vec![
+                    (MessageElement::MessageType, SerializableTypes::MessageType),
+                    (MessageElement::Ignored, SerializableTypes::U16SizedBytes),
+                ],
+            )),
             Ok(_) => Ok((MessageTypeEnum::Unknown, vec![])),
             Err(_) => {
                 println!("Unknown message type");
@@ -81,6 +99,10 @@ impl Message {
                 SerializableTypes::TLVStream => {
                     let (obj, bytes) = TLVStreamElement::from_bytes(bytes).unwrap();
                     (SerializableElement::TLVStream(obj), bytes)
+                }
+                SerializableTypes::U16Element => {
+                    let (obj, bytes) = U16SerializedElement::from_bytes(bytes).unwrap();
+                    (SerializableElement::U16Element(obj), bytes)
                 }
             };
             bytes = rem_bytes;

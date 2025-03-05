@@ -79,6 +79,43 @@ impl Serializable for U16SizedBytesElement {
 }
 
 #[derive(Debug)]
+pub struct ByteElement {
+    data: u8,
+}
+
+impl Serializable for ByteElement {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+        if data.len() < 1 {
+            return Err("Not enough data to read a byte".to_string());
+        }
+        Ok((ByteElement { data: data[0] }, &data[1..]))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        vec![self.data]
+    }
+}
+
+#[derive(Debug)]
+pub struct U16SerializedElement {
+    data: u16,
+}
+
+impl Serializable for U16SerializedElement {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+        if data.len() < 2 {
+            return Err("Not enough data to read a u16".to_string());
+        }
+        let num_bytes = u16::from_be_bytes([data[0], data[1]]);
+        Ok((U16SerializedElement { data: num_bytes }, &data[2..]))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.data.to_be_bytes().to_vec()
+    }
+}
+
+#[derive(Debug)]
 pub struct RemainderElement {
     data: Vec<u8>,
 }
@@ -103,6 +140,7 @@ pub type TLVStreamElement = RemainderElement;
 #[derive(Debug)]
 pub enum SerializableTypes {
     MessageType,
+    U16Element,
     U16SizedBytes,
     TLVStream,
 }
@@ -112,6 +150,7 @@ pub enum SerializableElement {
     MessageType(MessageTypeElement),
     U16SizedBytes(U16SizedBytesElement),
     TLVStream(TLVStreamElement),
+    U16Element(U16SerializedElement),
 }
 
 impl SerializableElement {
@@ -125,6 +164,10 @@ impl SerializableElement {
                 let (res, data) = U16SizedBytesElement::from_bytes(data).unwrap();
                 Ok((SerializableElement::U16SizedBytes(res), data))
             }
+            SerializableElement::U16Element(_) => {
+                let (res, data) = U16SerializedElement::from_bytes(data).unwrap();
+                Ok((SerializableElement::U16Element(res), data))
+            }
             SerializableElement::TLVStream(_) => {
                 let (res, data) = TLVStreamElement::from_bytes(data).unwrap();
                 Ok((SerializableElement::TLVStream(res), data))
@@ -137,6 +180,7 @@ impl SerializableElement {
             SerializableElement::MessageType(element) => element.to_bytes(),
             SerializableElement::U16SizedBytes(element) => element.to_bytes(),
             SerializableElement::TLVStream(element) => element.to_bytes(),
+            SerializableElement::U16Element(element) => element.to_bytes(),
         }
     }
 }
