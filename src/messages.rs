@@ -56,68 +56,54 @@ impl Message {
     pub fn get_structure(
         msg_type: u16,
     ) -> Result<(MessageTypeEnum, StructurePairList), MessageDecodeError> {
-        match MessageTypeEnum::try_from(msg_type) {
-            Ok(MessageTypeEnum::Init) => Ok((
-                MessageTypeEnum::Init,
-                vec![
-                    (MessageElement::MessageType, SerializableTypes::MessageType),
-                    (
-                        MessageElement::GlobalFeatures,
-                        SerializableTypes::U16SizedBytes,
-                    ),
-                    (
-                        MessageElement::LocalFeatures,
-                        SerializableTypes::U16SizedBytes,
-                    ),
-                    (MessageElement::TLVStream, SerializableTypes::TLVStream),
-                ],
-            )),
-            Ok(MessageTypeEnum::Ping) => Ok((
-                MessageTypeEnum::Ping,
-                vec![
-                    (MessageElement::MessageType, SerializableTypes::MessageType),
-                    (MessageElement::NumPongBytes, SerializableTypes::U16Element),
-                    (MessageElement::Ignored, SerializableTypes::U16SizedBytes),
-                ],
-            )),
-            Ok(MessageTypeEnum::Pong) => Ok((
-                MessageTypeEnum::Pong,
-                vec![
-                    (MessageElement::MessageType, SerializableTypes::MessageType),
-                    (MessageElement::Ignored, SerializableTypes::U16SizedBytes),
-                ],
-            )),
-            Ok(MessageTypeEnum::ChannelAnnouncement) => Ok((
-                MessageTypeEnum::ChannelAnnouncement,
-                vec![
-                    (MessageElement::NodeSignature1, SerializableTypes::Signature),
-                    (MessageElement::NodeSignature2, SerializableTypes::Signature),
-                    (
-                        MessageElement::BitcoinSignature1,
-                        SerializableTypes::Signature,
-                    ),
-                    (
-                        MessageElement::BitcoinSignature2,
-                        SerializableTypes::Signature,
-                    ),
-                    (MessageElement::Features, SerializableTypes::U16SizedBytes),
-                    (MessageElement::ChainHash, SerializableTypes::ChainHash),
-                    (
-                        MessageElement::ShortChannelID,
-                        SerializableTypes::ShortChannelID,
-                    ),
-                    (MessageElement::NodeId1, SerializableTypes::Point),
-                    (MessageElement::NodeId2, SerializableTypes::Point),
-                    (MessageElement::BitcoinKey1, SerializableTypes::Point),
-                    (MessageElement::BitcoinKey2, SerializableTypes::Point),
-                ],
-            )),
-            Ok(_) => Ok((MessageTypeEnum::Unknown, vec![])),
-            Err(_) => {
-                println!("Unknown message type");
-                Err(MessageDecodeError::Error)
-            }
-        }
+        let type_enum = MessageTypeEnum::try_from(msg_type).unwrap();
+        let structure_pairs = match type_enum {
+            MessageTypeEnum::Init => vec![
+                (MessageElement::MessageType, SerializableTypes::MessageType),
+                (
+                    MessageElement::GlobalFeatures,
+                    SerializableTypes::U16SizedBytes,
+                ),
+                (
+                    MessageElement::LocalFeatures,
+                    SerializableTypes::U16SizedBytes,
+                ),
+                (MessageElement::TLVStream, SerializableTypes::TLVStream),
+            ],
+            MessageTypeEnum::Ping => vec![
+                (MessageElement::MessageType, SerializableTypes::MessageType),
+                (MessageElement::NumPongBytes, SerializableTypes::U16Element),
+                (MessageElement::Ignored, SerializableTypes::U16SizedBytes),
+            ],
+            MessageTypeEnum::Pong => vec![
+                (MessageElement::MessageType, SerializableTypes::MessageType),
+                (MessageElement::Ignored, SerializableTypes::U16SizedBytes),
+            ],
+            MessageTypeEnum::ChannelAnnouncement => vec![
+                (MessageElement::NodeSignature1, SerializableTypes::Signature),
+                (MessageElement::NodeSignature2, SerializableTypes::Signature),
+                (
+                    MessageElement::BitcoinSignature1,
+                    SerializableTypes::Signature,
+                ),
+                (
+                    MessageElement::BitcoinSignature2,
+                    SerializableTypes::Signature,
+                ),
+                (MessageElement::Features, SerializableTypes::U16SizedBytes),
+                (MessageElement::ChainHash, SerializableTypes::ChainHash),
+                (
+                    MessageElement::ShortChannelID,
+                    SerializableTypes::ShortChannelID,
+                ),
+                (MessageElement::NodeId1, SerializableTypes::Point),
+                (MessageElement::NodeId2, SerializableTypes::Point),
+                (MessageElement::BitcoinKey1, SerializableTypes::Point),
+                (MessageElement::BitcoinKey2, SerializableTypes::Point),
+            ],
+            _ => vec![],
+        };
+        Ok((type_enum, structure_pairs))
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<(Message, &[u8]), MessageDecodeError> {
