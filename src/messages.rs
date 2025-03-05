@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use crate::message_types::MessageTypeEnum;
 use crate::serialization::ChainHashElement;
 use crate::serialization::MessageTypeElement;
+use crate::serialization::NodeAliasElement;
 use crate::serialization::PointElement;
+use crate::serialization::RGBColorElement;
 use crate::serialization::RemainderElement;
 use crate::serialization::Serializable;
 use crate::serialization::SerializableElement;
@@ -13,6 +15,7 @@ use crate::serialization::SignatureElement;
 use crate::serialization::TLVStreamElement;
 use crate::serialization::U16SerializedElement;
 use crate::serialization::U16SizedBytesElement;
+use crate::serialization::U32SerializedElement;
 
 #[derive(Debug)]
 pub enum MessageDecodeError {
@@ -31,13 +34,19 @@ enum MessageElement {
     NodeSignature2,
     BitcoinSignature1,
     BitcoinSignature2,
+    Timestamp,
     Features,
     ChainHash,
     ShortChannelID,
+    NodeId,
     NodeId1,
     NodeId2,
     BitcoinKey1,
     BitcoinKey2,
+    Signature,
+    RGBColor,
+    NodeAlias,
+    Addresses,
 }
 
 type MessageStructurePair = (MessageElement, SerializableTypes);
@@ -101,6 +110,15 @@ impl Message {
                 (MessageElement::BitcoinKey1, SerializableTypes::Point),
                 (MessageElement::BitcoinKey2, SerializableTypes::Point),
             ],
+            MessageTypeEnum::NodeAnnouncement => vec![
+                (MessageElement::Signature, SerializableTypes::Signature),
+                (MessageElement::Features, SerializableTypes::U16SizedBytes),
+                (MessageElement::Timestamp, SerializableTypes::U32Element),
+                (MessageElement::NodeId, SerializableTypes::Point),
+                (MessageElement::RGBColor, SerializableTypes::RGBColor),
+                (MessageElement::NodeAlias, SerializableTypes::NodeAlias),
+                (MessageElement::Addresses, SerializableTypes::U16SizedBytes),
+            ],
             _ => vec![],
         };
         Ok((type_enum, structure_pairs))
@@ -145,6 +163,18 @@ impl Message {
                 SerializableTypes::Point => {
                     let (obj, bytes) = PointElement::from_bytes(bytes).unwrap();
                     (SerializableElement::Point(obj), bytes)
+                }
+                SerializableTypes::RGBColor => {
+                    let (obj, bytes) = RGBColorElement::from_bytes(bytes).unwrap();
+                    (SerializableElement::RGBColor(obj), bytes)
+                }
+                SerializableTypes::NodeAlias => {
+                    let (obj, bytes) = NodeAliasElement::from_bytes(bytes).unwrap();
+                    (SerializableElement::NodeAlias(obj), bytes)
+                }
+                SerializableTypes::U32Element => {
+                    let (obj, bytes) = U32SerializedElement::from_bytes(bytes).unwrap();
+                    (SerializableElement::U32Element(obj), bytes)
                 }
             };
             bytes = rem_bytes;

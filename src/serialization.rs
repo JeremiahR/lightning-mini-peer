@@ -80,7 +80,7 @@ impl Serializable for U16SizedBytesElement {
 
 #[derive(Debug)]
 pub struct ByteElement {
-    data: u8,
+    value: u8,
 }
 
 impl Serializable for ByteElement {
@@ -88,17 +88,40 @@ impl Serializable for ByteElement {
         if data.len() < 1 {
             return Err("Not enough data to read a byte".to_string());
         }
-        Ok((ByteElement { data: data[0] }, &data[1..]))
+        Ok((ByteElement { value: data[0] }, &data[1..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
-        vec![self.data]
+        vec![self.value]
+    }
+}
+
+#[derive(Debug)]
+pub struct RGBColorElement {
+    bytes: [u8; 3],
+}
+
+impl Serializable for RGBColorElement {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+        if data.len() < 1 {
+            return Err("Not enough data to read a byte".to_string());
+        }
+        Ok((
+            RGBColorElement {
+                bytes: data[..3].try_into().unwrap(),
+            },
+            &data[3..],
+        ))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.bytes.to_vec()
     }
 }
 
 #[derive(Debug)]
 pub struct U16SerializedElement {
-    data: u16,
+    value: u16,
 }
 
 impl Serializable for U16SerializedElement {
@@ -106,12 +129,31 @@ impl Serializable for U16SerializedElement {
         if data.len() < 2 {
             return Err("Not enough data to read a u16".to_string());
         }
-        let num_bytes = u16::from_be_bytes([data[0], data[1]]);
-        Ok((U16SerializedElement { data: num_bytes }, &data[2..]))
+        let value = u16::from_be_bytes([data[0], data[1]]);
+        Ok((U16SerializedElement { value }, &data[2..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
-        self.data.to_be_bytes().to_vec()
+        self.value.to_be_bytes().to_vec()
+    }
+}
+
+#[derive(Debug)]
+pub struct U32SerializedElement {
+    value: u32,
+}
+
+impl Serializable for U32SerializedElement {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+        if data.len() < 4 {
+            return Err("Not enough data to read a u16".to_string());
+        }
+        let value = u32::from_be_bytes([data[0], data[1], data[2], data[3]]);
+        Ok((U32SerializedElement { value }, &data[4..]))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.value.to_be_bytes().to_vec()
     }
 }
 
@@ -158,6 +200,7 @@ impl Serializable for Bytes32Element {
 }
 
 pub type ChainHashElement = Bytes32Element;
+pub type NodeAliasElement = Bytes32Element;
 
 #[derive(Debug)]
 pub struct Bytes33Element {
@@ -229,12 +272,15 @@ pub type TLVStreamElement = RemainderElement;
 pub enum SerializableTypes {
     MessageType,
     U16Element,
+    U32Element,
     U16SizedBytes,
     TLVStream,
     Signature,
     ChainHash,
     ShortChannelID,
     Point,
+    RGBColor,
+    NodeAlias,
 }
 
 #[derive(Debug)]
@@ -243,10 +289,13 @@ pub enum SerializableElement {
     U16SizedBytes(U16SizedBytesElement),
     TLVStream(TLVStreamElement),
     U16Element(U16SerializedElement),
+    U32Element(U32SerializedElement),
     ChainHash(ChainHashElement),
     ShortChannelID(ShortChannelIDElement),
     Point(PointElement),
     Signature(SignatureElement),
+    RGBColor(RGBColorElement),
+    NodeAlias(NodeAliasElement),
 }
 
 impl SerializableElement {
@@ -263,6 +312,10 @@ impl SerializableElement {
             SerializableElement::U16Element(_) => {
                 let (res, data) = U16SerializedElement::from_bytes(data).unwrap();
                 Ok((SerializableElement::U16Element(res), data))
+            }
+            SerializableElement::U32Element(_) => {
+                let (res, data) = U32SerializedElement::from_bytes(data).unwrap();
+                Ok((SerializableElement::U32Element(res), data))
             }
             SerializableElement::TLVStream(_) => {
                 let (res, data) = TLVStreamElement::from_bytes(data).unwrap();
@@ -284,6 +337,14 @@ impl SerializableElement {
                 let (res, data) = SignatureElement::from_bytes(data).unwrap();
                 Ok((SerializableElement::Signature(res), data))
             }
+            SerializableElement::RGBColor(_) => {
+                let (res, data) = RGBColorElement::from_bytes(data).unwrap();
+                Ok((SerializableElement::RGBColor(res), data))
+            }
+            SerializableElement::NodeAlias(_) => {
+                let (res, data) = NodeAliasElement::from_bytes(data).unwrap();
+                Ok((SerializableElement::NodeAlias(res), data))
+            }
         }
     }
 
@@ -297,6 +358,9 @@ impl SerializableElement {
             SerializableElement::ShortChannelID(element) => element.to_bytes(),
             SerializableElement::Point(element) => element.to_bytes(),
             SerializableElement::Signature(element) => element.to_bytes(),
+            SerializableElement::U32Element(element) => element.to_bytes(),
+            SerializableElement::RGBColor(element) => element.to_bytes(),
+            SerializableElement::NodeAlias(element) => element.to_bytes(),
         }
     }
 }
