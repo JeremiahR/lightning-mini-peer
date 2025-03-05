@@ -4,6 +4,8 @@ use crate::util::parse_node;
 use crate::node_connection::NodeConnection;
 use std::env;
 
+mod message_handler;
+mod message_types;
 mod node;
 mod node_connection;
 mod util;
@@ -43,33 +45,5 @@ async fn main() {
             println!("Failed to read: {:?}", err);
             return;
         }
-    }
-
-    // let mut buffer = [0; 512];
-    // let n = stream.read(&mut buffer).unwrap();
-
-    // peer_encryptor.decrypt_message(&mut buffer[..n]).unwrap();
-    // println!("Received: {}", hex::encode(&buffer[..n]));
-    // let init = b"\x00\x10\x00\x00\x00\x01\xaa";
-    // stream.write_all(init).unwrap();
-    // // now wait for the response
-    // let mut buffer = [0; 512];
-    // let n = stream.read(&mut buffer).unwrap();
-    // // make a mutable copy of the message
-    // peer_encryptor.decrypt_message(&mut buffer[..n]).unwrap();
-    // println!("Received: {}", hex::encode(&buffer[..n]));
-}
-
-// test
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_decode_message() {
-        let bytes = hex::decode("19d915996c6dd5c8be418de4b5762d0e7d895e28e79dcb3d9421d3bcd2d9e94c6bc6df5ef7ea6c40056c3caf0fe46b6cfb30a6db6987929c37f5f80fcc74a2ccc2a77d9c6c484abd0a508411e21b9a7e8118b8").unwrap();
-        // decode the first two bytes as a big-endian int
-        let mst_type = u16::from_be_bytes([bytes[0], bytes[1]]);
-        assert_eq!(mst_type, 1);
-        // assert_eq!(bytes, "Hello, world!");
     }
 }
