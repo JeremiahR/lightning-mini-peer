@@ -4,9 +4,12 @@ use crate::vendor::KeysManager;
 use crate::vendor::MiniPeerConnection;
 use bitcoin::secp256k1::PublicKey as BitcoinPublicKey;
 use bitcoin::secp256k1::Secp256k1;
+use bitcoin::secp256k1::SecretKey;
 use hex;
 use std::sync::Arc;
 
+use crate::vendor::PeerChannelEncryptor;
+use node::Node;
 use std::env;
 use std::str::FromStr;
 
@@ -17,27 +20,29 @@ mod vendor;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
-    let node_str = args.last().unwrap();
-    let node = parse_node(node_str);
-    let node_secret_key = new_random_secret_key();
-    // let node_public_key = node_secret_key.public_key(&Secp256k1::signing_only());
+struct NodeConnection {
+    node_public_key: BitcoinPublicKey,
+    stream: TcpStream,
+    peer_encryptor: PeerChannelEncryptor,
+}
 
-    let their_public_key = BitcoinPublicKey::from_str(&node.public_key).unwrap();
-    let secp_ctx = Secp256k1::signing_only();
-    let mp = MiniPeerConnection::new(secp_ctx.clone(), new_random_secret_key());
-    let mut peer_encryptor = mp.new_peer_connector(their_public_key);
-    let act_one = peer_encryptor.get_act_one(&secp_ctx);
-    let mut km = Arc::new(KeysManager::new(&node_secret_key.secret_bytes(), 0, 0));
-    println!("Arguments: {:?}", node);
-    println!("Act One: {:?}", hex::encode(act_one));
-
+fn handshake(node: &Node, node_secret_key: SecretKey) -> NodeConnection {
     let address = format!("{}:{}", node.ip_address, node.port);
+    let secp_ctx = Secp256k1::signing_only();
+    let remote_public_key = BitcoinPublicKey::from_str(&node.public_key).unwrap();
+    let mut km = Arc::new(KeysManager::new(&node_secret_key.secret_bytes(), 0, 0));
+    let mp = MiniPeerConnection::new(secp_ctx.clone(), new_random_secret_key());
+    let mut peer_encryptor = mp.new_peer_connector(remote_public_key);
     let mut stream = TcpStream::connect(&address).unwrap();
+
+    // let next_step = peer_encryptor.get_next_step();
+    // println!("Next step: {:?}", next_step);
     println!("Connected to {}", address);
+    let act_one = peer_encryptor.get_act_one(&secp_ctx);
+    println!("Act One: {:?}", hex::encode(act_one));
     stream.write_all(act_one.as_ref()).unwrap();
-    let mut buffer = [0; 512];
+
+    let mut buffer = [0; 50];
     let n = stream.read(&mut buffer).unwrap();
     println!("Received: {}", hex::encode(&buffer[..n]));
     let (act_three, public_key) = peer_encryptor
@@ -46,12 +51,36 @@ fn main() {
     println!("Act Three: {:?}", hex::encode(act_three));
     println!("Public Key: {:?}", public_key.to_string());
     stream.write_all(act_three.as_ref()).unwrap();
-    stream.flush().unwrap();
-    let mut buffer = [0; 512];
-    let n = stream.read(&mut buffer).unwrap();
 
-    peer_encryptor.decrypt_message(&mut buffer[..n]).unwrap();
-    println!("Received: {}", hex::encode(&buffer[..n]));
+    let mut buffer = [0; 66];
+    let n = stream.read(&mut buffer).unwrap();
+    let node_public_key = peer_encryptor.process_act_three(&buffer[..n]).unwrap();
+
+    NodeConnection {
+        node_public_key,
+        stream,
+        peer_encryptor,
+    }
+}
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    let node_str = args.last().unwrap();
+    let node = parse_node(node_str);
+    let node_secret_key = new_random_secret_key();
+    // let node_public_key = node_secret_key.public_key(&Secp256k1::signing_only());
+
+    let secp_ctx = Secp256k1::signing_only();
+
+    let mut node_conn = handshake(&node, node_secret_key);
+
+    println!("Arguments: {:?}", node);
+
+    // let mut buffer = [0; 512];
+    // let n = stream.read(&mut buffer).unwrap();
+
+    // peer_encryptor.decrypt_message(&mut buffer[..n]).unwrap();
+    // println!("Received: {}", hex::encode(&buffer[..n]));
     // let init = b"\x00\x10\x00\x00\x00\x01\xaa";
     // stream.write_all(init).unwrap();
     // // now wait for the response
