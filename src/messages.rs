@@ -41,6 +41,11 @@ enum MessageElement {
     EncodedShortIds,
     QuerySortChannelIDsTLVS,
     FullInformation,
+    FirstBlockNum,
+    NumberOfBlocks,
+    SyncComplete,
+    QueryChannelRangeTLVs,
+    ReplyChannelRangeTLVs,
 }
 
 type MessageStructurePair = (MessageElement, SerializableTypes);
@@ -121,12 +126,41 @@ impl Message {
                 ),
                 (
                     MessageElement::QuerySortChannelIDsTLVS,
-                    SerializableTypes::U16SizedBytes,
+                    SerializableTypes::TLVStream,
                 ),
             ],
             MessageTypeEnum::ReplyShortChannelIdsEnd => vec![
                 (MessageElement::ChainHash, SerializableTypes::ChainHash),
                 (MessageElement::FullInformation, SerializableTypes::Byte),
+            ],
+            MessageTypeEnum::QueryChannelRange => vec![
+                (MessageElement::ChainHash, SerializableTypes::ChainHash),
+                (MessageElement::FirstBlockNum, SerializableTypes::U32Element),
+                (
+                    MessageElement::NumberOfBlocks,
+                    SerializableTypes::U32Element,
+                ),
+                (
+                    MessageElement::QueryChannelRangeTLVs,
+                    SerializableTypes::TLVStream,
+                ),
+            ],
+            MessageTypeEnum::ReplyChannelRange => vec![
+                (MessageElement::ChainHash, SerializableTypes::ChainHash),
+                (MessageElement::FirstBlockNum, SerializableTypes::U32Element),
+                (
+                    MessageElement::NumberOfBlocks,
+                    SerializableTypes::U32Element,
+                ),
+                (MessageElement::SyncComplete, SerializableTypes::Byte),
+                (
+                    MessageElement::EncodedShortIds,
+                    SerializableTypes::U16Element,
+                ),
+                (
+                    MessageElement::ReplyChannelRangeTLVs,
+                    SerializableTypes::TLVStream,
+                ),
             ],
             _ => vec![],
         };
