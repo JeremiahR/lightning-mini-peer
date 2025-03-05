@@ -152,6 +152,7 @@ checksum = "8355be11b20d696c8f18f6cc018c4e372165b1fa8126cef092399c9951984ffa"
 [[package]]
 name = "lightning"
 version = "0.2.0+git"
+source = "git+https://github.com/JeremiahR/rust-lightning.git?branch=mod_for_lmp#5edc847811d81d8729fef24ba4a77267684d0f46"
 dependencies = [
  "bech32",
  "bitcoin",
@@ -168,6 +169,7 @@ dependencies = [
 [[package]]
 name = "lightning-invoice"
 version = "0.34.0+git"
+source = "git+https://github.com/JeremiahR/rust-lightning.git?branch=mod_for_lmp#5edc847811d81d8729fef24ba4a77267684d0f46"
 dependencies = [
  "bech32",
  "bitcoin",
@@ -177,6 +179,7 @@ dependencies = [
 [[package]]
 name = "lightning-macros"
 version = "0.2.0+git"
+source = "git+https://github.com/JeremiahR/rust-lightning.git?branch=mod_for_lmp#5edc847811d81d8729fef24ba4a77267684d0f46"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -186,6 +189,7 @@ dependencies = [
 [[package]]
 name = "lightning-types"
 version = "0.3.0+git"
+source = "git+https://github.com/JeremiahR/rust-lightning.git?branch=mod_for_lmp#5edc847811d81d8729fef24ba4a77267684d0f46"
 dependencies = [
  "bitcoin",
 ]
@@ -211,6 +215,7 @@ dependencies = [
 [[package]]
 name = "possiblyrandom"
 version = "0.2.0"
+source = "git+https://github.com/JeremiahR/rust-lightning.git?branch=mod_for_lmp#5edc847811d81d8729fef24ba4a77267684d0f46"
 dependencies = [
  "getrandom",
 ]
