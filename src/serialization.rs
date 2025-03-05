@@ -279,6 +279,7 @@ pub enum SerializableTypes {
     ChainHash,
     ShortChannelID,
     Point,
+    Byte,
     RGBColor,
     NodeAlias,
 }
@@ -293,6 +294,7 @@ pub enum SerializableElement {
     ChainHash(ChainHashElement),
     ShortChannelID(ShortChannelIDElement),
     Point(PointElement),
+    Byte(ByteElement),
     Signature(SignatureElement),
     RGBColor(RGBColorElement),
     NodeAlias(NodeAliasElement),
@@ -345,6 +347,10 @@ impl SerializableElement {
                 let (res, data) = NodeAliasElement::from_bytes(data).unwrap();
                 Ok((SerializableElement::NodeAlias(res), data))
             }
+            SerializableElement::Byte(_) => {
+                let (res, data) = ByteElement::from_bytes(data).unwrap();
+                Ok((SerializableElement::Byte(res), data))
+            }
         }
     }
 
@@ -361,6 +367,7 @@ impl SerializableElement {
             SerializableElement::U32Element(element) => element.to_bytes(),
             SerializableElement::RGBColor(element) => element.to_bytes(),
             SerializableElement::NodeAlias(element) => element.to_bytes(),
+            SerializableElement::Byte(element) => element.to_bytes(),
         }
     }
 }

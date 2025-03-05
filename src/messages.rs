@@ -1,21 +1,12 @@
 use std::collections::HashMap;
 
 use crate::message_types::MessageTypeEnum;
-use crate::serialization::ChainHashElement;
-use crate::serialization::MessageTypeElement;
-use crate::serialization::NodeAliasElement;
-use crate::serialization::PointElement;
-use crate::serialization::RGBColorElement;
-use crate::serialization::RemainderElement;
-use crate::serialization::Serializable;
-use crate::serialization::SerializableElement;
-use crate::serialization::SerializableTypes;
-use crate::serialization::ShortChannelIDElement;
-use crate::serialization::SignatureElement;
-use crate::serialization::TLVStreamElement;
-use crate::serialization::U16SerializedElement;
-use crate::serialization::U16SizedBytesElement;
-use crate::serialization::U32SerializedElement;
+use crate::serialization::{
+    ByteElement, ChainHashElement, MessageTypeElement, NodeAliasElement, PointElement,
+    RGBColorElement, Serializable, SerializableElement, SerializableTypes, ShortChannelIDElement,
+    SignatureElement, TLVStreamElement, U16SerializedElement, U16SizedBytesElement,
+    U32SerializedElement,
+};
 
 #[derive(Debug)]
 pub enum MessageDecodeError {
@@ -47,6 +38,9 @@ enum MessageElement {
     RGBColor,
     NodeAlias,
     Addresses,
+    EncodedShortIds,
+    QuerySortChannelIDsTLVS,
+    FullInformation,
 }
 
 type MessageStructurePair = (MessageElement, SerializableTypes);
@@ -119,6 +113,21 @@ impl Message {
                 (MessageElement::NodeAlias, SerializableTypes::NodeAlias),
                 (MessageElement::Addresses, SerializableTypes::U16SizedBytes),
             ],
+            MessageTypeEnum::QueryShortChannelIds => vec![
+                (MessageElement::ChainHash, SerializableTypes::ChainHash),
+                (
+                    MessageElement::EncodedShortIds,
+                    SerializableTypes::U16SizedBytes,
+                ),
+                (
+                    MessageElement::QuerySortChannelIDsTLVS,
+                    SerializableTypes::U16SizedBytes,
+                ),
+            ],
+            MessageTypeEnum::ReplyShortChannelIdsEnd => vec![
+                (MessageElement::ChainHash, SerializableTypes::ChainHash),
+                (MessageElement::FullInformation, SerializableTypes::Byte),
+            ],
             _ => vec![],
         };
         Ok((type_enum, structure_pairs))
@@ -175,6 +184,10 @@ impl Message {
                 SerializableTypes::U32Element => {
                     let (obj, bytes) = U32SerializedElement::from_bytes(bytes).unwrap();
                     (SerializableElement::U32Element(obj), bytes)
+                }
+                SerializableTypes::Byte => {
+                    let (obj, bytes) = ByteElement::from_bytes(bytes).unwrap();
+                    (SerializableElement::Byte(obj), bytes)
                 }
             };
             bytes = rem_bytes;
