@@ -13,7 +13,14 @@ pub enum MessageDecodeError {
     Error,
 }
 
-pub type MessageStructurePair = (String, SerializableTypes);
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum MessageElement {
+    MessageType,
+    GlobalFeatures,
+    LocalFeatures,
+}
+
+pub type MessageStructurePair = (MessageElement, SerializableTypes);
 
 // And a list (Vec) of such tuples.
 pub type StructurePairList = Vec<MessageStructurePair>;
@@ -21,8 +28,8 @@ pub type StructurePairList = Vec<MessageStructurePair>;
 #[derive(Debug)]
 pub struct Message {
     pub message_type: MessageTypeEnum,
-    pub elements: HashMap<String, SerializableElement>,
-    pub element_order: Vec<String>,
+    pub elements: HashMap<MessageElement, SerializableElement>,
+    pub element_order: Vec<MessageElement>,
 }
 
 impl Message {
@@ -33,13 +40,13 @@ impl Message {
             Ok(MessageTypeEnum::Init) => Ok((
                 MessageTypeEnum::Init,
                 vec![
-                    ("type".to_string(), SerializableTypes::MessageType),
+                    (MessageElement::MessageType, SerializableTypes::MessageType),
                     (
-                        "globalfeatures".to_string(),
+                        MessageElement::GlobalFeatures,
                         SerializableTypes::U16SizedBytes,
                     ),
                     (
-                        "localfeatures".to_string(),
+                        MessageElement::LocalFeatures,
                         SerializableTypes::U16SizedBytes,
                     ),
                     // ("remainder".to_string(), SerializableTypes::Remainder),
@@ -107,12 +114,10 @@ mod tests {
         let (msg, remainder) = Message::from_bytes(&initial_bytes).unwrap();
         assert_eq!(msg.message_type, MessageTypeEnum::Init);
         // check that "type" is contained in msg.elements
-        assert!(msg.elements.contains_key("type"));
-        assert!(msg.elements.contains_key("globalfeatures"));
-        assert!(msg.elements.contains_key("localfeatures"));
+        assert!(msg.elements.contains_key(&MessageElement::MessageType));
+        assert!(msg.elements.contains_key(&MessageElement::GlobalFeatures));
+        assert!(msg.elements.contains_key(&MessageElement::LocalFeatures));
+        // check serialization
         assert_eq!([msg.to_bytes(), remainder.to_vec()].concat(), initial_bytes);
-        // assert_eq!(msg.msg_type, 16);
-        // assert_eq!(msg.name, "init");
-        // assert_eq!(true, false);
     }
 }

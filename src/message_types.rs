@@ -2,7 +2,7 @@
 use num_enum::TryFromPrimitive;
 use strum_macros::{EnumIter, IntoStaticStr};
 
-#[derive(Debug, EnumIter, Clone, PartialEq, IntoStaticStr, TryFromPrimitive)]
+#[derive(Debug, EnumIter, Clone, Eq, PartialEq, Hash, IntoStaticStr, TryFromPrimitive)]
 #[repr(u16)]
 pub enum MessageTypeEnum {
     Unknown = 0,
