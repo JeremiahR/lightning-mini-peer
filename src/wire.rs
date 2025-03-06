@@ -14,7 +14,7 @@ pub enum MessageDecodeError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum MessageElement {
+enum WireElement {
     MessageType,
     GlobalFeatures,
     LocalFeatures,
@@ -50,144 +50,133 @@ enum MessageElement {
     TimestampRange,
 }
 
-type MessageStructurePair = (MessageElement, SerializableTypes);
-
-// And a list (Vec) of such tuples.
-type StructurePairList = Vec<MessageStructurePair>;
-
-#[derive(Debug)]
-pub struct Message {
-    message_type: MessageTypeEnum,
-    elements: HashMap<MessageElement, SerializableElement>,
-    element_order: Vec<MessageElement>,
+impl WireElement {
+    pub fn as_serializable(element: WireElement) -> SerializableTypes {
+        match element {
+            WireElement::MessageType => SerializableTypes::MessageType,
+            WireElement::GlobalFeatures => SerializableTypes::U16SizedBytes,
+            WireElement::LocalFeatures => SerializableTypes::U16SizedBytes,
+            WireElement::TLVStream => SerializableTypes::TLVStream,
+            WireElement::NumPongBytes => SerializableTypes::U16Element,
+            WireElement::Ignored => SerializableTypes::U16SizedBytes,
+            WireElement::Signature => SerializableTypes::Signature,
+            WireElement::NodeSignature1 => SerializableTypes::Signature,
+            WireElement::NodeSignature2 => SerializableTypes::Signature,
+            WireElement::BitcoinSignature1 => SerializableTypes::Signature,
+            WireElement::BitcoinSignature2 => SerializableTypes::Signature,
+            WireElement::Features => SerializableTypes::U16SizedBytes,
+            WireElement::ChainHash => SerializableTypes::ChainHash,
+            WireElement::ShortChannelID => SerializableTypes::ShortChannelID,
+            WireElement::NodeId => SerializableTypes::Point,
+            WireElement::NodeId1 => SerializableTypes::Point,
+            WireElement::NodeId2 => SerializableTypes::Point,
+            WireElement::BitcoinKey1 => SerializableTypes::Point,
+            WireElement::BitcoinKey2 => SerializableTypes::Point,
+            WireElement::Timestamp => SerializableTypes::U32Element,
+            WireElement::FirstTimestamp => SerializableTypes::U32Element,
+            WireElement::TimestampRange => SerializableTypes::U32Element,
+            WireElement::FirstBlockNum => SerializableTypes::U32Element,
+            WireElement::NumberOfBlocks => SerializableTypes::U32Element,
+            WireElement::RGBColor => SerializableTypes::RGBColor,
+            WireElement::NodeAlias => SerializableTypes::NodeAlias,
+            WireElement::Addresses => SerializableTypes::U16SizedBytes,
+            WireElement::QuerySortChannelIDsTLVS => SerializableTypes::TLVStream,
+            WireElement::QueryChannelRangeTLVs => SerializableTypes::TLVStream,
+            WireElement::FullInformation => SerializableTypes::Byte,
+            WireElement::SyncComplete => SerializableTypes::Byte,
+            WireElement::EncodedShortIds => SerializableTypes::U16SizedBytes,
+            WireElement::ReplyChannelRangeTLVs => SerializableTypes::TLVStream,
+        }
+    }
 }
 
-impl Message {
+#[derive(Debug)]
+pub struct WireFormatMessage {
+    message_type: MessageTypeEnum,
+    elements: HashMap<WireElement, SerializableElement>,
+    element_order: Vec<WireElement>,
+}
+
+impl WireFormatMessage {
     pub fn get_structure(
         msg_type: u16,
-    ) -> Result<(MessageTypeEnum, StructurePairList), MessageDecodeError> {
+    ) -> Result<(MessageTypeEnum, Vec<WireElement>), MessageDecodeError> {
         let type_enum = MessageTypeEnum::try_from(msg_type).unwrap();
-        let structure_pairs = match type_enum {
+        let wire_elements: Vec<WireElement> = match type_enum {
             MessageTypeEnum::Init => vec![
-                (MessageElement::MessageType, SerializableTypes::MessageType),
-                (
-                    MessageElement::GlobalFeatures,
-                    SerializableTypes::U16SizedBytes,
-                ),
-                (
-                    MessageElement::LocalFeatures,
-                    SerializableTypes::U16SizedBytes,
-                ),
-                (MessageElement::TLVStream, SerializableTypes::TLVStream),
+                WireElement::MessageType,
+                WireElement::GlobalFeatures,
+                WireElement::LocalFeatures,
+                WireElement::TLVStream,
             ],
             MessageTypeEnum::Ping => vec![
-                (MessageElement::MessageType, SerializableTypes::MessageType),
-                (MessageElement::NumPongBytes, SerializableTypes::U16Element),
-                (MessageElement::Ignored, SerializableTypes::U16SizedBytes),
+                WireElement::MessageType,
+                WireElement::NumPongBytes,
+                WireElement::Ignored,
             ],
-            MessageTypeEnum::Pong => vec![
-                (MessageElement::MessageType, SerializableTypes::MessageType),
-                (MessageElement::Ignored, SerializableTypes::U16SizedBytes),
-            ],
+            MessageTypeEnum::Pong => vec![WireElement::MessageType, WireElement::Ignored],
             MessageTypeEnum::ChannelAnnouncement => vec![
-                (MessageElement::NodeSignature1, SerializableTypes::Signature),
-                (MessageElement::NodeSignature2, SerializableTypes::Signature),
-                (
-                    MessageElement::BitcoinSignature1,
-                    SerializableTypes::Signature,
-                ),
-                (
-                    MessageElement::BitcoinSignature2,
-                    SerializableTypes::Signature,
-                ),
-                (MessageElement::Features, SerializableTypes::U16SizedBytes),
-                (MessageElement::ChainHash, SerializableTypes::ChainHash),
-                (
-                    MessageElement::ShortChannelID,
-                    SerializableTypes::ShortChannelID,
-                ),
-                (MessageElement::NodeId1, SerializableTypes::Point),
-                (MessageElement::NodeId2, SerializableTypes::Point),
-                (MessageElement::BitcoinKey1, SerializableTypes::Point),
-                (MessageElement::BitcoinKey2, SerializableTypes::Point),
+                WireElement::NodeSignature1,
+                WireElement::NodeSignature2,
+                WireElement::BitcoinSignature1,
+                WireElement::BitcoinSignature2,
+                WireElement::Features,
+                WireElement::ChainHash,
+                WireElement::ShortChannelID,
+                WireElement::NodeId1,
+                WireElement::NodeId2,
+                WireElement::BitcoinKey1,
+                WireElement::BitcoinKey2,
             ],
             MessageTypeEnum::NodeAnnouncement => vec![
-                (MessageElement::Signature, SerializableTypes::Signature),
-                (MessageElement::Features, SerializableTypes::U16SizedBytes),
-                (MessageElement::Timestamp, SerializableTypes::U32Element),
-                (MessageElement::NodeId, SerializableTypes::Point),
-                (MessageElement::RGBColor, SerializableTypes::RGBColor),
-                (MessageElement::NodeAlias, SerializableTypes::NodeAlias),
-                (MessageElement::Addresses, SerializableTypes::U16SizedBytes),
+                WireElement::Signature,
+                WireElement::Features,
+                WireElement::Timestamp,
+                WireElement::NodeId,
+                WireElement::RGBColor,
+                WireElement::NodeAlias,
+                WireElement::Addresses,
             ],
             MessageTypeEnum::QueryShortChannelIds => vec![
-                (MessageElement::ChainHash, SerializableTypes::ChainHash),
-                (
-                    MessageElement::EncodedShortIds,
-                    SerializableTypes::U16SizedBytes,
-                ),
-                (
-                    MessageElement::QuerySortChannelIDsTLVS,
-                    SerializableTypes::TLVStream,
-                ),
+                WireElement::ChainHash,
+                WireElement::EncodedShortIds,
+                WireElement::QuerySortChannelIDsTLVS,
             ],
-            MessageTypeEnum::ReplyShortChannelIdsEnd => vec![
-                (MessageElement::ChainHash, SerializableTypes::ChainHash),
-                (MessageElement::FullInformation, SerializableTypes::Byte),
-            ],
+            MessageTypeEnum::ReplyShortChannelIdsEnd => {
+                vec![WireElement::ChainHash, WireElement::FullInformation]
+            }
             MessageTypeEnum::QueryChannelRange => vec![
-                (MessageElement::ChainHash, SerializableTypes::ChainHash),
-                (MessageElement::FirstBlockNum, SerializableTypes::U32Element),
-                (
-                    MessageElement::NumberOfBlocks,
-                    SerializableTypes::U32Element,
-                ),
-                (
-                    MessageElement::QueryChannelRangeTLVs,
-                    SerializableTypes::TLVStream,
-                ),
+                WireElement::ChainHash,
+                WireElement::FirstBlockNum,
+                WireElement::NumberOfBlocks,
+                WireElement::QueryChannelRangeTLVs,
             ],
             MessageTypeEnum::ReplyChannelRange => vec![
-                (MessageElement::ChainHash, SerializableTypes::ChainHash),
-                (MessageElement::FirstBlockNum, SerializableTypes::U32Element),
-                (
-                    MessageElement::NumberOfBlocks,
-                    SerializableTypes::U32Element,
-                ),
-                (MessageElement::SyncComplete, SerializableTypes::Byte),
-                (
-                    MessageElement::EncodedShortIds,
-                    SerializableTypes::U16Element,
-                ),
-                (
-                    MessageElement::ReplyChannelRangeTLVs,
-                    SerializableTypes::TLVStream,
-                ),
+                WireElement::ChainHash,
+                WireElement::FirstBlockNum,
+                WireElement::NumberOfBlocks,
+                WireElement::SyncComplete,
+                WireElement::EncodedShortIds,
+                WireElement::ReplyChannelRangeTLVs,
             ],
             MessageTypeEnum::GossipTimestampFilter => vec![
-                (MessageElement::ChainHash, SerializableTypes::ChainHash),
-                (
-                    MessageElement::FirstTimestamp,
-                    SerializableTypes::U32Element,
-                ),
-                (
-                    MessageElement::TimestampRange,
-                    SerializableTypes::U32Element,
-                ),
+                WireElement::ChainHash,
+                WireElement::FirstTimestamp,
+                WireElement::TimestampRange,
             ],
             _ => vec![],
         };
-        Ok((type_enum, structure_pairs))
+        Ok((type_enum, wire_elements))
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<(Message, &[u8]), MessageDecodeError> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<(WireFormatMessage, &[u8]), MessageDecodeError> {
         let (m, _) = MessageTypeElement::from_bytes(bytes).unwrap();
-        let (message_type, structure) = Message::get_structure(m.id).unwrap();
+        let (message_type, wire_elements) = WireFormatMessage::get_structure(m.id).unwrap();
         let mut elements = HashMap::new();
         let mut element_order = Vec::new();
         let mut bytes = bytes;
-        for (key, enum_type) in &structure {
-            let (obj, rem_bytes) = match enum_type {
+        for wire_element in wire_elements {
+            let (obj, rem_bytes) = match WireElement::as_serializable(wire_element.clone()) {
                 SerializableTypes::MessageType => {
                     let (obj, bytes) = MessageTypeElement::from_bytes(bytes).unwrap();
                     (SerializableElement::MessageType(obj), bytes)
@@ -238,11 +227,11 @@ impl Message {
                 }
             };
             bytes = rem_bytes;
-            elements.insert(key.clone(), obj);
-            element_order.push(key.clone());
+            elements.insert(wire_element.clone(), obj);
+            element_order.push(wire_element);
         }
         Ok((
-            Message {
+            WireFormatMessage {
                 message_type,
                 elements,
                 element_order,
@@ -267,12 +256,12 @@ mod tests {
     #[test]
     fn test_decode_init_message() {
         let initial_bytes = hex::decode("001000021100000708a0880a8a59a1012006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f2d7ef99482067a1b72fe9e411d37be8c").unwrap();
-        let (msg, remainder) = Message::from_bytes(&initial_bytes).unwrap();
+        let (msg, remainder) = WireFormatMessage::from_bytes(&initial_bytes).unwrap();
         assert_eq!(msg.message_type, MessageTypeEnum::Init);
         // check that "type" is contained in msg.elements
-        assert!(msg.elements.contains_key(&MessageElement::MessageType));
-        assert!(msg.elements.contains_key(&MessageElement::GlobalFeatures));
-        assert!(msg.elements.contains_key(&MessageElement::LocalFeatures));
+        assert!(msg.elements.contains_key(&WireElement::MessageType));
+        assert!(msg.elements.contains_key(&WireElement::GlobalFeatures));
+        assert!(msg.elements.contains_key(&WireElement::LocalFeatures));
         // check serialization
         assert_eq!([msg.to_bytes(), remainder.to_vec()].concat(), initial_bytes);
     }

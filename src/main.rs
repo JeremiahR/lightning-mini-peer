@@ -1,4 +1,4 @@
-use messages::Message;
+use wire::WireFormatMessage;
 
 use crate::util::new_random_secret_key;
 use crate::util::parse_node;
@@ -7,12 +7,12 @@ use crate::node_connection::NodeConnection;
 use std::env;
 
 mod message_types;
-mod messages;
 mod node;
 mod node_connection;
 mod serialization;
 mod util;
 mod vendor;
+mod wire;
 
 #[tokio::main]
 async fn main() {
@@ -45,7 +45,7 @@ async fn main() {
     match node_conn.get_next_message().await {
         Ok(bytes) => {
             println!("Received bytes: {:?}", bytes);
-            let res = Message::from_bytes(bytes.as_slice());
+            let res = WireFormatMessage::from_bytes(bytes.as_slice());
             println!("Received message: {:?}", res);
         }
         Err(err) => {
