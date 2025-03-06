@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::message_types::MessageTypeEnum;
 use crate::serialization::{
     ByteElement, ChainHashElement, MessageTypeElement, NodeAliasElement, PointElement,
-    RGBColorElement, Serializable, SerializableElement, SerializableType, ShortChannelIDElement,
+    RGBColorElement, Serializable, SerializableType, SerializedContainer, ShortChannelIDElement,
     SignatureElement, TLVStreamElement, U16SerializedElement, U16SizedBytesElement,
     U32SerializedElement,
 };
@@ -93,7 +93,7 @@ impl WireElement {
 #[derive(Debug)]
 pub struct WireFormatMessage {
     message_type: MessageTypeEnum,
-    elements: HashMap<WireElement, SerializableElement>,
+    elements: HashMap<WireElement, SerializedContainer>,
     element_order: Vec<WireElement>,
 }
 
@@ -179,51 +179,51 @@ impl WireFormatMessage {
             let (obj, rem_bytes) = match WireElement::as_serializable(wire_element.clone()) {
                 SerializableType::MessageType => {
                     let (obj, bytes) = MessageTypeElement::from_bytes(bytes).unwrap();
-                    (SerializableElement::MessageType(obj), bytes)
+                    (SerializedContainer::MessageType(obj), bytes)
                 }
                 SerializableType::U16Element => {
                     let (obj, bytes) = U16SerializedElement::from_bytes(bytes).unwrap();
-                    (SerializableElement::U16Element(obj), bytes)
+                    (SerializedContainer::U16Element(obj), bytes)
                 }
                 SerializableType::U16SizedBytes => {
                     let (obj, bytes) = U16SizedBytesElement::from_bytes(bytes).unwrap();
-                    (SerializableElement::U16SizedBytes(obj), bytes)
+                    (SerializedContainer::U16SizedBytes(obj), bytes)
                 }
                 SerializableType::TLVStream => {
                     let (obj, bytes) = TLVStreamElement::from_bytes(bytes).unwrap();
-                    (SerializableElement::TLVStream(obj), bytes)
+                    (SerializedContainer::TLVStream(obj), bytes)
                 }
                 SerializableType::Signature => {
                     let (obj, bytes) = SignatureElement::from_bytes(bytes).unwrap();
-                    (SerializableElement::Signature(obj), bytes)
+                    (SerializedContainer::Signature(obj), bytes)
                 }
                 SerializableType::ChainHash => {
                     let (obj, bytes) = ChainHashElement::from_bytes(bytes).unwrap();
-                    (SerializableElement::ChainHash(obj), bytes)
+                    (SerializedContainer::ChainHash(obj), bytes)
                 }
                 SerializableType::ShortChannelID => {
                     let (obj, bytes) = ShortChannelIDElement::from_bytes(bytes).unwrap();
-                    (SerializableElement::ShortChannelID(obj), bytes)
+                    (SerializedContainer::ShortChannelID(obj), bytes)
                 }
                 SerializableType::Point => {
                     let (obj, bytes) = PointElement::from_bytes(bytes).unwrap();
-                    (SerializableElement::Point(obj), bytes)
+                    (SerializedContainer::Point(obj), bytes)
                 }
                 SerializableType::RGBColor => {
                     let (obj, bytes) = RGBColorElement::from_bytes(bytes).unwrap();
-                    (SerializableElement::RGBColor(obj), bytes)
+                    (SerializedContainer::RGBColor(obj), bytes)
                 }
                 SerializableType::NodeAlias => {
                     let (obj, bytes) = NodeAliasElement::from_bytes(bytes).unwrap();
-                    (SerializableElement::NodeAlias(obj), bytes)
+                    (SerializedContainer::NodeAlias(obj), bytes)
                 }
                 SerializableType::U32Element => {
                     let (obj, bytes) = U32SerializedElement::from_bytes(bytes).unwrap();
-                    (SerializableElement::U32Element(obj), bytes)
+                    (SerializedContainer::U32Element(obj), bytes)
                 }
                 SerializableType::Byte => {
                     let (obj, bytes) = ByteElement::from_bytes(bytes).unwrap();
-                    (SerializableElement::Byte(obj), bytes)
+                    (SerializedContainer::Byte(obj), bytes)
                 }
             };
             bytes = rem_bytes;
