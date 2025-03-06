@@ -12,12 +12,12 @@ pub trait Serializable: Sized {
 }
 
 #[derive(Debug, Clone)]
-pub struct MessageTypeElement {
+pub struct MessageTypeStruct {
     pub id: u16,
     pub name: String,
 }
 
-impl MessageTypeElement {
+impl MessageTypeStruct {
     // it's lazy to do this every time, but it can be optimized later
     fn enum_name_lookup() -> HashMap<i32, String> {
         let mut map = HashMap::new();
@@ -30,7 +30,7 @@ impl MessageTypeElement {
     }
 }
 
-impl Serializable for MessageTypeElement {
+impl Serializable for MessageTypeStruct {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
         if data.len() < 2 {
             return Err("Not enough data to read a u16".to_string());
@@ -41,7 +41,7 @@ impl Serializable for MessageTypeElement {
             Some(name) => name.to_string(),
             None => "unknown".to_string(),
         };
-        Ok((MessageTypeElement { id, name }, &data[2..]))
+        Ok((MessageTypeStruct { id, name }, &data[2..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
@@ -50,12 +50,12 @@ impl Serializable for MessageTypeElement {
 }
 
 #[derive(Debug)]
-pub struct U16SizedBytesElement {
+pub struct U16SizedBytesStruct {
     num_bytes: u16,
     data: Vec<u8>,
 }
 
-impl Serializable for U16SizedBytesElement {
+impl Serializable for U16SizedBytesStruct {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
         if data.len() < 2 {
             return Err("Not enough data to read a u16".to_string());
@@ -63,7 +63,7 @@ impl Serializable for U16SizedBytesElement {
         let num_bytes = u16::from_be_bytes([data[0], data[1]]);
         let our_data = data[2..2 + num_bytes as usize].to_vec();
         Ok((
-            U16SizedBytesElement {
+            U16SizedBytesStruct {
                 num_bytes,
                 data: our_data,
             },
@@ -269,7 +269,7 @@ impl Serializable for RemainderElement {
 pub type TLVStreamElement = RemainderElement;
 
 #[derive(Debug)]
-pub enum SerializableType {
+pub enum SerializedKind {
     MessageType,
     U16Element,
     U32Element,
@@ -285,12 +285,12 @@ pub enum SerializableType {
 }
 
 #[derive(Debug)]
-pub enum SerializedContainer {
-    MessageType(MessageTypeElement),
-    U16SizedBytes(U16SizedBytesElement),
-    TLVStream(TLVStreamElement),
+pub enum SerializedTypeContainer {
+    MessageType(MessageTypeStruct),
     U16Element(U16SerializedElement),
     U32Element(U32SerializedElement),
+    U16SizedBytes(U16SizedBytesStruct),
+    TLVStream(TLVStreamElement),
     ChainHash(ChainHashElement),
     ShortChannelID(ShortChannelIDElement),
     Point(PointElement),
@@ -300,74 +300,21 @@ pub enum SerializedContainer {
     NodeAlias(NodeAliasElement),
 }
 
-impl SerializedContainer {
-    pub fn from_bytes(key: SerializedContainer, data: &[u8]) -> Result<(Self, &[u8]), String> {
-        match key {
-            SerializedContainer::MessageType(_) => {
-                let (res, data) = MessageTypeElement::from_bytes(data).unwrap();
-                Ok((SerializedContainer::MessageType(res), data))
-            }
-            SerializedContainer::U16SizedBytes(_) => {
-                let (res, data) = U16SizedBytesElement::from_bytes(data).unwrap();
-                Ok((SerializedContainer::U16SizedBytes(res), data))
-            }
-            SerializedContainer::U16Element(_) => {
-                let (res, data) = U16SerializedElement::from_bytes(data).unwrap();
-                Ok((SerializedContainer::U16Element(res), data))
-            }
-            SerializedContainer::U32Element(_) => {
-                let (res, data) = U32SerializedElement::from_bytes(data).unwrap();
-                Ok((SerializedContainer::U32Element(res), data))
-            }
-            SerializedContainer::TLVStream(_) => {
-                let (res, data) = TLVStreamElement::from_bytes(data).unwrap();
-                Ok((SerializedContainer::TLVStream(res), data))
-            }
-            SerializedContainer::ChainHash(_) => {
-                let (res, data) = ChainHashElement::from_bytes(data).unwrap();
-                Ok((SerializedContainer::ChainHash(res), data))
-            }
-            SerializedContainer::ShortChannelID(_) => {
-                let (res, data) = ShortChannelIDElement::from_bytes(data).unwrap();
-                Ok((SerializedContainer::ShortChannelID(res), data))
-            }
-            SerializedContainer::Point(_) => {
-                let (res, data) = PointElement::from_bytes(data).unwrap();
-                Ok((SerializedContainer::Point(res), data))
-            }
-            SerializedContainer::Signature(_) => {
-                let (res, data) = SignatureElement::from_bytes(data).unwrap();
-                Ok((SerializedContainer::Signature(res), data))
-            }
-            SerializedContainer::RGBColor(_) => {
-                let (res, data) = RGBColorElement::from_bytes(data).unwrap();
-                Ok((SerializedContainer::RGBColor(res), data))
-            }
-            SerializedContainer::NodeAlias(_) => {
-                let (res, data) = NodeAliasElement::from_bytes(data).unwrap();
-                Ok((SerializedContainer::NodeAlias(res), data))
-            }
-            SerializedContainer::Byte(_) => {
-                let (res, data) = ByteElement::from_bytes(data).unwrap();
-                Ok((SerializedContainer::Byte(res), data))
-            }
-        }
-    }
-
+impl SerializedTypeContainer {
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
-            SerializedContainer::MessageType(element) => element.to_bytes(),
-            SerializedContainer::U16SizedBytes(element) => element.to_bytes(),
-            SerializedContainer::TLVStream(element) => element.to_bytes(),
-            SerializedContainer::U16Element(element) => element.to_bytes(),
-            SerializedContainer::ChainHash(element) => element.to_bytes(),
-            SerializedContainer::ShortChannelID(element) => element.to_bytes(),
-            SerializedContainer::Point(element) => element.to_bytes(),
-            SerializedContainer::Signature(element) => element.to_bytes(),
-            SerializedContainer::U32Element(element) => element.to_bytes(),
-            SerializedContainer::RGBColor(element) => element.to_bytes(),
-            SerializedContainer::NodeAlias(element) => element.to_bytes(),
-            SerializedContainer::Byte(element) => element.to_bytes(),
+            SerializedTypeContainer::MessageType(element) => element.to_bytes(),
+            SerializedTypeContainer::U16SizedBytes(element) => element.to_bytes(),
+            SerializedTypeContainer::TLVStream(element) => element.to_bytes(),
+            SerializedTypeContainer::U16Element(element) => element.to_bytes(),
+            SerializedTypeContainer::ChainHash(element) => element.to_bytes(),
+            SerializedTypeContainer::ShortChannelID(element) => element.to_bytes(),
+            SerializedTypeContainer::Point(element) => element.to_bytes(),
+            SerializedTypeContainer::Signature(element) => element.to_bytes(),
+            SerializedTypeContainer::U32Element(element) => element.to_bytes(),
+            SerializedTypeContainer::RGBColor(element) => element.to_bytes(),
+            SerializedTypeContainer::NodeAlias(element) => element.to_bytes(),
+            SerializedTypeContainer::Byte(element) => element.to_bytes(),
         }
     }
 }

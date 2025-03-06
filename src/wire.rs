@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use crate::message_types::MessageTypeEnum;
 use crate::serialization::{
-    ByteElement, ChainHashElement, MessageTypeElement, NodeAliasElement, PointElement,
-    RGBColorElement, Serializable, SerializableType, SerializedContainer, ShortChannelIDElement,
-    SignatureElement, TLVStreamElement, U16SerializedElement, U16SizedBytesElement,
+    ByteElement, ChainHashElement, MessageTypeStruct, NodeAliasElement, PointElement,
+    RGBColorElement, Serializable, SerializedKind, SerializedTypeContainer, ShortChannelIDElement,
+    SignatureElement, TLVStreamElement, U16SerializedElement, U16SizedBytesStruct,
     U32SerializedElement,
 };
 
@@ -14,7 +14,7 @@ pub enum MessageDecodeError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum WireElement {
+enum LightningType {
     MessageType,
     GlobalFeatures,
     LocalFeatures,
@@ -50,42 +50,42 @@ enum WireElement {
     TimestampRange,
 }
 
-impl WireElement {
-    pub fn as_serializable(element: WireElement) -> SerializableType {
+impl LightningType {
+    pub fn serialized_kind(element: LightningType) -> SerializedKind {
         match element {
-            WireElement::MessageType => SerializableType::MessageType,
-            WireElement::GlobalFeatures => SerializableType::U16SizedBytes,
-            WireElement::LocalFeatures => SerializableType::U16SizedBytes,
-            WireElement::TLVStream => SerializableType::TLVStream,
-            WireElement::NumPongBytes => SerializableType::U16Element,
-            WireElement::Ignored => SerializableType::U16SizedBytes,
-            WireElement::Signature => SerializableType::Signature,
-            WireElement::NodeSignature1 => SerializableType::Signature,
-            WireElement::NodeSignature2 => SerializableType::Signature,
-            WireElement::BitcoinSignature1 => SerializableType::Signature,
-            WireElement::BitcoinSignature2 => SerializableType::Signature,
-            WireElement::Features => SerializableType::U16SizedBytes,
-            WireElement::ChainHash => SerializableType::ChainHash,
-            WireElement::ShortChannelID => SerializableType::ShortChannelID,
-            WireElement::NodeId => SerializableType::Point,
-            WireElement::NodeId1 => SerializableType::Point,
-            WireElement::NodeId2 => SerializableType::Point,
-            WireElement::BitcoinKey1 => SerializableType::Point,
-            WireElement::BitcoinKey2 => SerializableType::Point,
-            WireElement::Timestamp => SerializableType::U32Element,
-            WireElement::FirstTimestamp => SerializableType::U32Element,
-            WireElement::TimestampRange => SerializableType::U32Element,
-            WireElement::FirstBlockNum => SerializableType::U32Element,
-            WireElement::NumberOfBlocks => SerializableType::U32Element,
-            WireElement::RGBColor => SerializableType::RGBColor,
-            WireElement::NodeAlias => SerializableType::NodeAlias,
-            WireElement::Addresses => SerializableType::U16SizedBytes,
-            WireElement::QuerySortChannelIDsTLVS => SerializableType::TLVStream,
-            WireElement::QueryChannelRangeTLVs => SerializableType::TLVStream,
-            WireElement::FullInformation => SerializableType::Byte,
-            WireElement::SyncComplete => SerializableType::Byte,
-            WireElement::EncodedShortIds => SerializableType::U16SizedBytes,
-            WireElement::ReplyChannelRangeTLVs => SerializableType::TLVStream,
+            LightningType::MessageType => SerializedKind::MessageType,
+            LightningType::GlobalFeatures => SerializedKind::U16SizedBytes,
+            LightningType::LocalFeatures => SerializedKind::U16SizedBytes,
+            LightningType::TLVStream => SerializedKind::TLVStream,
+            LightningType::NumPongBytes => SerializedKind::U16Element,
+            LightningType::Ignored => SerializedKind::U16SizedBytes,
+            LightningType::Signature => SerializedKind::Signature,
+            LightningType::NodeSignature1 => SerializedKind::Signature,
+            LightningType::NodeSignature2 => SerializedKind::Signature,
+            LightningType::BitcoinSignature1 => SerializedKind::Signature,
+            LightningType::BitcoinSignature2 => SerializedKind::Signature,
+            LightningType::Features => SerializedKind::U16SizedBytes,
+            LightningType::ChainHash => SerializedKind::ChainHash,
+            LightningType::ShortChannelID => SerializedKind::ShortChannelID,
+            LightningType::NodeId => SerializedKind::Point,
+            LightningType::NodeId1 => SerializedKind::Point,
+            LightningType::NodeId2 => SerializedKind::Point,
+            LightningType::BitcoinKey1 => SerializedKind::Point,
+            LightningType::BitcoinKey2 => SerializedKind::Point,
+            LightningType::Timestamp => SerializedKind::U32Element,
+            LightningType::FirstTimestamp => SerializedKind::U32Element,
+            LightningType::TimestampRange => SerializedKind::U32Element,
+            LightningType::FirstBlockNum => SerializedKind::U32Element,
+            LightningType::NumberOfBlocks => SerializedKind::U32Element,
+            LightningType::RGBColor => SerializedKind::RGBColor,
+            LightningType::NodeAlias => SerializedKind::NodeAlias,
+            LightningType::Addresses => SerializedKind::U16SizedBytes,
+            LightningType::QuerySortChannelIDsTLVS => SerializedKind::TLVStream,
+            LightningType::QueryChannelRangeTLVs => SerializedKind::TLVStream,
+            LightningType::FullInformation => SerializedKind::Byte,
+            LightningType::SyncComplete => SerializedKind::Byte,
+            LightningType::EncodedShortIds => SerializedKind::U16SizedBytes,
+            LightningType::ReplyChannelRangeTLVs => SerializedKind::TLVStream,
         }
     }
 }
@@ -93,76 +93,76 @@ impl WireElement {
 #[derive(Debug)]
 pub struct WireFormatMessage {
     message_type: MessageTypeEnum,
-    elements: HashMap<WireElement, SerializedContainer>,
-    element_order: Vec<WireElement>,
+    elements: HashMap<LightningType, SerializedTypeContainer>,
+    element_order: Vec<LightningType>,
 }
 
 impl WireFormatMessage {
     pub fn get_structure(
         msg_type: u16,
-    ) -> Result<(MessageTypeEnum, Vec<WireElement>), MessageDecodeError> {
+    ) -> Result<(MessageTypeEnum, Vec<LightningType>), MessageDecodeError> {
         let type_enum = MessageTypeEnum::try_from(msg_type).unwrap();
-        let wire_elements: Vec<WireElement> = match type_enum {
+        let wire_elements: Vec<LightningType> = match type_enum {
             MessageTypeEnum::Init => vec![
-                WireElement::MessageType,
-                WireElement::GlobalFeatures,
-                WireElement::LocalFeatures,
-                WireElement::TLVStream,
+                LightningType::MessageType,
+                LightningType::GlobalFeatures,
+                LightningType::LocalFeatures,
+                LightningType::TLVStream,
             ],
             MessageTypeEnum::Ping => vec![
-                WireElement::MessageType,
-                WireElement::NumPongBytes,
-                WireElement::Ignored,
+                LightningType::MessageType,
+                LightningType::NumPongBytes,
+                LightningType::Ignored,
             ],
-            MessageTypeEnum::Pong => vec![WireElement::MessageType, WireElement::Ignored],
+            MessageTypeEnum::Pong => vec![LightningType::MessageType, LightningType::Ignored],
             MessageTypeEnum::ChannelAnnouncement => vec![
-                WireElement::NodeSignature1,
-                WireElement::NodeSignature2,
-                WireElement::BitcoinSignature1,
-                WireElement::BitcoinSignature2,
-                WireElement::Features,
-                WireElement::ChainHash,
-                WireElement::ShortChannelID,
-                WireElement::NodeId1,
-                WireElement::NodeId2,
-                WireElement::BitcoinKey1,
-                WireElement::BitcoinKey2,
+                LightningType::NodeSignature1,
+                LightningType::NodeSignature2,
+                LightningType::BitcoinSignature1,
+                LightningType::BitcoinSignature2,
+                LightningType::Features,
+                LightningType::ChainHash,
+                LightningType::ShortChannelID,
+                LightningType::NodeId1,
+                LightningType::NodeId2,
+                LightningType::BitcoinKey1,
+                LightningType::BitcoinKey2,
             ],
             MessageTypeEnum::NodeAnnouncement => vec![
-                WireElement::Signature,
-                WireElement::Features,
-                WireElement::Timestamp,
-                WireElement::NodeId,
-                WireElement::RGBColor,
-                WireElement::NodeAlias,
-                WireElement::Addresses,
+                LightningType::Signature,
+                LightningType::Features,
+                LightningType::Timestamp,
+                LightningType::NodeId,
+                LightningType::RGBColor,
+                LightningType::NodeAlias,
+                LightningType::Addresses,
             ],
             MessageTypeEnum::QueryShortChannelIds => vec![
-                WireElement::ChainHash,
-                WireElement::EncodedShortIds,
-                WireElement::QuerySortChannelIDsTLVS,
+                LightningType::ChainHash,
+                LightningType::EncodedShortIds,
+                LightningType::QuerySortChannelIDsTLVS,
             ],
             MessageTypeEnum::ReplyShortChannelIdsEnd => {
-                vec![WireElement::ChainHash, WireElement::FullInformation]
+                vec![LightningType::ChainHash, LightningType::FullInformation]
             }
             MessageTypeEnum::QueryChannelRange => vec![
-                WireElement::ChainHash,
-                WireElement::FirstBlockNum,
-                WireElement::NumberOfBlocks,
-                WireElement::QueryChannelRangeTLVs,
+                LightningType::ChainHash,
+                LightningType::FirstBlockNum,
+                LightningType::NumberOfBlocks,
+                LightningType::QueryChannelRangeTLVs,
             ],
             MessageTypeEnum::ReplyChannelRange => vec![
-                WireElement::ChainHash,
-                WireElement::FirstBlockNum,
-                WireElement::NumberOfBlocks,
-                WireElement::SyncComplete,
-                WireElement::EncodedShortIds,
-                WireElement::ReplyChannelRangeTLVs,
+                LightningType::ChainHash,
+                LightningType::FirstBlockNum,
+                LightningType::NumberOfBlocks,
+                LightningType::SyncComplete,
+                LightningType::EncodedShortIds,
+                LightningType::ReplyChannelRangeTLVs,
             ],
             MessageTypeEnum::GossipTimestampFilter => vec![
-                WireElement::ChainHash,
-                WireElement::FirstTimestamp,
-                WireElement::TimestampRange,
+                LightningType::ChainHash,
+                LightningType::FirstTimestamp,
+                LightningType::TimestampRange,
             ],
             _ => vec![],
         };
@@ -170,60 +170,60 @@ impl WireFormatMessage {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<(WireFormatMessage, &[u8]), MessageDecodeError> {
-        let (m, _) = MessageTypeElement::from_bytes(bytes).unwrap();
+        let (m, _) = MessageTypeStruct::from_bytes(bytes).unwrap();
         let (message_type, wire_elements) = WireFormatMessage::get_structure(m.id).unwrap();
         let mut elements = HashMap::new();
         let mut element_order = Vec::new();
         let mut bytes = bytes;
         for wire_element in wire_elements {
-            let (obj, rem_bytes) = match WireElement::as_serializable(wire_element.clone()) {
-                SerializableType::MessageType => {
-                    let (obj, bytes) = MessageTypeElement::from_bytes(bytes).unwrap();
-                    (SerializedContainer::MessageType(obj), bytes)
+            let (obj, rem_bytes) = match LightningType::serialized_kind(wire_element.clone()) {
+                SerializedKind::MessageType => {
+                    let (obj, bytes) = MessageTypeStruct::from_bytes(bytes).unwrap();
+                    (SerializedTypeContainer::MessageType(obj), bytes)
                 }
-                SerializableType::U16Element => {
+                SerializedKind::U16Element => {
                     let (obj, bytes) = U16SerializedElement::from_bytes(bytes).unwrap();
-                    (SerializedContainer::U16Element(obj), bytes)
+                    (SerializedTypeContainer::U16Element(obj), bytes)
                 }
-                SerializableType::U16SizedBytes => {
-                    let (obj, bytes) = U16SizedBytesElement::from_bytes(bytes).unwrap();
-                    (SerializedContainer::U16SizedBytes(obj), bytes)
+                SerializedKind::U16SizedBytes => {
+                    let (obj, bytes) = U16SizedBytesStruct::from_bytes(bytes).unwrap();
+                    (SerializedTypeContainer::U16SizedBytes(obj), bytes)
                 }
-                SerializableType::TLVStream => {
+                SerializedKind::TLVStream => {
                     let (obj, bytes) = TLVStreamElement::from_bytes(bytes).unwrap();
-                    (SerializedContainer::TLVStream(obj), bytes)
+                    (SerializedTypeContainer::TLVStream(obj), bytes)
                 }
-                SerializableType::Signature => {
+                SerializedKind::Signature => {
                     let (obj, bytes) = SignatureElement::from_bytes(bytes).unwrap();
-                    (SerializedContainer::Signature(obj), bytes)
+                    (SerializedTypeContainer::Signature(obj), bytes)
                 }
-                SerializableType::ChainHash => {
+                SerializedKind::ChainHash => {
                     let (obj, bytes) = ChainHashElement::from_bytes(bytes).unwrap();
-                    (SerializedContainer::ChainHash(obj), bytes)
+                    (SerializedTypeContainer::ChainHash(obj), bytes)
                 }
-                SerializableType::ShortChannelID => {
+                SerializedKind::ShortChannelID => {
                     let (obj, bytes) = ShortChannelIDElement::from_bytes(bytes).unwrap();
-                    (SerializedContainer::ShortChannelID(obj), bytes)
+                    (SerializedTypeContainer::ShortChannelID(obj), bytes)
                 }
-                SerializableType::Point => {
+                SerializedKind::Point => {
                     let (obj, bytes) = PointElement::from_bytes(bytes).unwrap();
-                    (SerializedContainer::Point(obj), bytes)
+                    (SerializedTypeContainer::Point(obj), bytes)
                 }
-                SerializableType::RGBColor => {
+                SerializedKind::RGBColor => {
                     let (obj, bytes) = RGBColorElement::from_bytes(bytes).unwrap();
-                    (SerializedContainer::RGBColor(obj), bytes)
+                    (SerializedTypeContainer::RGBColor(obj), bytes)
                 }
-                SerializableType::NodeAlias => {
+                SerializedKind::NodeAlias => {
                     let (obj, bytes) = NodeAliasElement::from_bytes(bytes).unwrap();
-                    (SerializedContainer::NodeAlias(obj), bytes)
+                    (SerializedTypeContainer::NodeAlias(obj), bytes)
                 }
-                SerializableType::U32Element => {
+                SerializedKind::U32Element => {
                     let (obj, bytes) = U32SerializedElement::from_bytes(bytes).unwrap();
-                    (SerializedContainer::U32Element(obj), bytes)
+                    (SerializedTypeContainer::U32Element(obj), bytes)
                 }
-                SerializableType::Byte => {
+                SerializedKind::Byte => {
                     let (obj, bytes) = ByteElement::from_bytes(bytes).unwrap();
-                    (SerializedContainer::Byte(obj), bytes)
+                    (SerializedTypeContainer::Byte(obj), bytes)
                 }
             };
             bytes = rem_bytes;
@@ -259,9 +259,9 @@ mod tests {
         let (msg, remainder) = WireFormatMessage::from_bytes(&initial_bytes).unwrap();
         assert_eq!(msg.message_type, MessageTypeEnum::Init);
         // check that "type" is contained in msg.elements
-        assert!(msg.elements.contains_key(&WireElement::MessageType));
-        assert!(msg.elements.contains_key(&WireElement::GlobalFeatures));
-        assert!(msg.elements.contains_key(&WireElement::LocalFeatures));
+        assert!(msg.elements.contains_key(&LightningType::MessageType));
+        assert!(msg.elements.contains_key(&LightningType::GlobalFeatures));
+        assert!(msg.elements.contains_key(&LightningType::LocalFeatures));
         // check serialization
         assert_eq!([msg.to_bytes(), remainder.to_vec()].concat(), initial_bytes);
     }
