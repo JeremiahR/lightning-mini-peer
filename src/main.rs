@@ -1,5 +1,5 @@
-use message_decoder::MessageDecoder;
 use messages::PingMessage;
+use wire::BytesSerializable;
 
 use crate::util::new_random_secret_key;
 use crate::util::parse_node;
@@ -52,15 +52,28 @@ async fn main() {
             return;
         }
     }
-    let _ping = PingMessage {
+    let ping = PingMessage {
         num_pong_bytes: 10,
         ignored: vec![0; 10],
     };
-    // match node_conn.wri(ping).await {
-    //     Ok(_) => (),
-    //     Err(err) => {
-    //         println!("Failed to send ping: {:?}", err);
-    //         return;
-    //     }
-    // }
+    match node_conn.send_message(ping.to_bytes().as_slice()).await {
+        Ok(_) => (),
+        Err(err) => {
+            println!("Failed to send ping: {:?}", err);
+            return;
+        }
+    }
+    loop {
+        let _ = node_conn.wait_for_message().await;
+        match node_conn.read_next_message().await {
+            Ok(res) => {
+                println!("Received message: {:?}", res);
+            }
+            Err(err) => {
+                println!("Failed to read: {:?}", err);
+            }
+        }
+        // sleep for a bit
+        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+    }
 }

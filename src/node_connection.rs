@@ -5,7 +5,7 @@ use bitcoin::secp256k1::PublicKey as BitcoinPublicKey;
 use bitcoin::secp256k1::Secp256k1;
 use bitcoin::secp256k1::SecretKey;
 use bitcoin::secp256k1::SignOnly;
-use lightning::ln::peer_channel_encryptor::NextNoiseStep;
+use lightning::ln::peer_channel_encryptor::{MessageBuf, NextNoiseStep};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
@@ -18,6 +18,8 @@ use std::sync::Arc;
 #[derive(Debug)]
 pub enum NodeConnectionError {
     SocketError,
+    NoMessageFound,
+    InvalidHeaderLength,
     MessageDecodeError,
 }
 
@@ -68,7 +70,7 @@ impl NodeConnection {
         match self.stream.read(&mut buffer).await {
             Ok(n) => {
                 let response = buffer[..n].to_vec();
-                println!("Read: {:?}", hex::encode(&response));
+                println!("Read: {} bytes, {:?}", n, hex::encode(&response));
                 Ok(response)
             }
             Err(err) => {
@@ -140,14 +142,32 @@ impl NodeConnection {
         }
     }
 
+    pub async fn wait_for_message(&mut self) -> tokio::io::Result<()> {
+        match self.stream.readable().await {
+            Ok(_) => {
+                println!("message waiting");
+                Ok(())
+            }
+            Err(err) => {
+                println!("Failed to wait for message: {:?}", err);
+                Ok(()) // this is def cheating
+            }
+        }
+    }
+
     async fn read_stream(&mut self) -> Result<Vec<u8>, NodeConnectionError> {
-        let mut header = self.read_n_bytes(18).await?;
+        let mut header = match self.read_n_bytes(18).await {
+            Ok(header) => header,
+            Err(err) => return Err(err),
+        };
+        if header.len() != 18 {
+            return Err(NodeConnectionError::InvalidHeaderLength);
+        }
         self.peer_encryptor
             .decrypt_message(header.as_mut())
             .unwrap();
         println!("decrypted header: {:?}", hex::encode(&header));
         let length = u16::from_be_bytes([header[0], header[1]]);
-        println!("message length: {}", length);
         let mut message = self.read_n_bytes(length as usize + 16).await?;
         self.peer_encryptor
             .decrypt_message(message.as_mut())
@@ -161,6 +181,10 @@ impl NodeConnection {
             Ok(bytes) => bytes,
             Err(err) => return Err(err),
         };
+        println!("length: {}", bytes.len());
+        if bytes.is_empty() {
+            return Err(NodeConnectionError::NoMessageFound);
+        }
         let (message, _bytes) = match MessageDecoder::from_bytes(bytes.as_slice()) {
             Ok(msg) => msg,
             Err(_) => return Err(NodeConnectionError::MessageDecodeError),
@@ -168,13 +192,17 @@ impl NodeConnection {
         Ok(message)
     }
 
-    // pub async fn write_message(
-    //     &mut self,
-    //     message: MessageContainer,
-    // ) -> Result<(), NodeConnectionError> {
-    //     let mut bytes = message.to_bytes().as_slice();
-    //     self.peer_encryptor.encrypt_message(&bytes);
-    //     self.write_all(bytes.as_slice()).await?;
-    //     Ok(())
-    // }
+    pub async fn send_message(&mut self, bytes: &[u8]) -> Result<(), NodeConnectionError> {
+        let cleartext = hex::encode(bytes);
+        let buf = MessageBuf::from_encoded(bytes);
+        let encrypted = self.peer_encryptor.encrypt_buffer(buf);
+        println!(
+            "sending, cleartext: {:?}, encrypted: {:?}",
+            cleartext,
+            hex::encode(&encrypted)
+        );
+        self.write_all(encrypted.as_slice()).await?;
+        println!("message sent");
+        Ok(())
+    }
 }
