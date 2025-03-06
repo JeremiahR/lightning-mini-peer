@@ -140,6 +140,14 @@ pub struct PongMessage {
     ignored: Vec<u8>,
 }
 
+impl PongMessage {
+    pub fn from_ping(ping: PingMessage) -> Self {
+        PongMessage {
+            ignored: vec![0; ping.num_pong_bytes as usize],
+        }
+    }
+}
+
 impl BytesSerializable for PongMessage {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         let (_message, data) = MessageTypeWire::from_bytes(data)?;

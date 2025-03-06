@@ -68,7 +68,10 @@ async fn main() {
     loop {
         match node_conn.read_next_message().await {
             Ok(msg) => {
-                message_handler.handle_inbound(msg).await.unwrap();
+                message_handler
+                    .handle_inbound(msg, &mut node_conn)
+                    .await
+                    .unwrap();
             }
             Err(err) => {
                 println!("Failed to read: {:?}", err);
