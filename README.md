@@ -13,10 +13,14 @@ Setup a lightning network in Polar. Copy the "P2P External" address of one node,
 
 Run `cargo run <nodeid>`
 
+See below for the features that are implemented.
+
 # Todos
 
-- De/serialize pings, pongs, inits, and basic message types.
-- Send pings, recieve pongs.
+- [DONE] De/serialize pings, pongs, inits, and basic message types.
+- [DONE] Handshake and keep alive connection. Print inbound/outbound messages.
+- [DONE] Send pings, recieve pongs.
+- Create message handler that responds to pings.
 - De/serialize gossip and channel messages.
 - Interrogate connected node(s) to learn about more nodes.
 - Interrogate connected node(s) to learn about channels.
