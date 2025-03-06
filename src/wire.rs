@@ -75,7 +75,7 @@ impl BytesSerializable for U16SizedBytesWire {
 
 #[derive(Debug)]
 pub struct SingleByteWire {
-    value: u8,
+    pub value: u8,
 }
 
 impl BytesSerializable for SingleByteWire {

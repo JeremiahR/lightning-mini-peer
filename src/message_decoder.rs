@@ -1,6 +1,6 @@
 use crate::messages::{
     ChannelAnnouncementMessage, GossipTimestampFilterMessage, InitMessage, MessageType,
-    PingMessage, PongMessage, QueryChannelRangeMessage, UnknownMessage,
+    PingMessage, PongMessage, QueryChannelRangeMessage, ReplyChannelRangeMessage, UnknownMessage,
 };
 use crate::wire::{BytesSerializable, MessageTypeWire};
 
@@ -18,6 +18,7 @@ pub enum MessageContainer {
     ChannelAnnouncement(ChannelAnnouncementMessage),
     GossipTimestampFilter(GossipTimestampFilterMessage),
     QueryChannelRange(QueryChannelRangeMessage),
+    ReplyChannelRange(ReplyChannelRangeMessage),
     Unknown(UnknownMessage),
 }
 
@@ -30,6 +31,7 @@ impl MessageContainer {
             MessageContainer::ChannelAnnouncement(message) => message.to_bytes(),
             MessageContainer::GossipTimestampFilter(message) => message.to_bytes(),
             MessageContainer::QueryChannelRange(message) => message.to_bytes(),
+            MessageContainer::ReplyChannelRange(message) => message.to_bytes(),
             MessageContainer::Unknown(message) => message.to_bytes(),
         }
     }
@@ -72,6 +74,27 @@ impl MessageDecoder {
                     Err(_) => return Err(MessageDecoderError::Error),
                 };
                 Ok((MessageContainer::ChannelAnnouncement(message), data))
+            }
+            MessageType::GossipTimestampFilter => {
+                let (message, data) = match GossipTimestampFilterMessage::from_bytes(bytes) {
+                    Ok(x) => x,
+                    Err(_) => return Err(MessageDecoderError::Error),
+                };
+                Ok((MessageContainer::GossipTimestampFilter(message), data))
+            }
+            MessageType::ReplyChannelRange => {
+                let (message, data) = match ReplyChannelRangeMessage::from_bytes(bytes) {
+                    Ok(x) => x,
+                    Err(_) => return Err(MessageDecoderError::Error),
+                };
+                Ok((MessageContainer::ReplyChannelRange(message), data))
+            }
+            MessageType::QueryChannelRange => {
+                let (message, data) = match QueryChannelRangeMessage::from_bytes(bytes) {
+                    Ok(x) => x,
+                    Err(_) => return Err(MessageDecoderError::Error),
+                };
+                Ok((MessageContainer::QueryChannelRange(message), data))
             }
             _ => {
                 let (message, data) = match UnknownMessage::from_bytes(bytes) {

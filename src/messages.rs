@@ -1,8 +1,8 @@
 use crate::wire::{
     BytesSerializable, ChainHashElement, FeaturesStruct, GlobalFeaturesStruct, IgnoredStruct,
     LocalFeaturesStruct, MessageTypeWire, NumPongBytesStruct, PointElement, SerializationError,
-    ShortChannelIDElement, SignatureElement, TLVStreamElement, TimestampElement,
-    TimestampRangeElement, U32IntWire,
+    ShortChannelIDElement, SignatureElement, SingleByteWire, TLVStreamElement, TimestampElement,
+    TimestampRangeElement, U16SizedBytesWire, U32IntWire,
 };
 
 use num_enum::TryFromPrimitive;
@@ -235,11 +235,11 @@ impl BytesSerializable for ChannelAnnouncementMessage {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GossipTimestampFilterMessage {
-    chain_hash: [u8; 32],
-    first_timestamp: u32,
-    timestamp_range: u32,
+    pub chain_hash: [u8; 32],
+    pub first_timestamp: u32,
+    pub timestamp_range: u32,
 }
 
 impl BytesSerializable for GossipTimestampFilterMessage {
@@ -335,6 +335,77 @@ impl BytesSerializable for QueryChannelRangeMessage {
         bytes.extend(
             TLVStreamElement {
                 data: self.query_range_tlvs.clone(),
+            }
+            .to_bytes(),
+        );
+        bytes
+    }
+}
+
+#[derive(Debug)]
+pub struct ReplyChannelRangeMessage {
+    chain_hash: [u8; 32],
+    first_blocknum: u32,
+    number_of_blocks: u32,
+    sync_complete: u8,
+    encoded_short_ids: Vec<u8>,
+    reply_channel_range_tlvs: Vec<u8>,
+}
+
+impl BytesSerializable for ReplyChannelRangeMessage {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        let (_, data) = MessageTypeWire::from_bytes(data)?;
+        let (chain_hash, data) = ChainHashElement::from_bytes(data)?;
+        let (first_blocknum, data) = U32IntWire::from_bytes(data)?;
+        let (number_of_blocks, data) = U32IntWire::from_bytes(data)?;
+        let (sync_complete, data) = SingleByteWire::from_bytes(data)?;
+        let (encoded_short_ids, data) = U16SizedBytesWire::from_bytes(data)?;
+        let (reply_channel_range_tlvs, data) = TLVStreamElement::from_bytes(data)?;
+
+        Ok((
+            ReplyChannelRangeMessage {
+                chain_hash: chain_hash.data,
+                first_blocknum: first_blocknum.value,
+                number_of_blocks: number_of_blocks.value,
+                sync_complete: sync_complete.value,
+                encoded_short_ids: encoded_short_ids.data,
+                reply_channel_range_tlvs: reply_channel_range_tlvs.data,
+            },
+            data,
+        ))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend(MessageTypeWire::new(MessageType::ReplyChannelRange).to_bytes());
+        bytes.extend(
+            ChainHashElement {
+                data: self.chain_hash,
+            }
+            .to_bytes(),
+        );
+        bytes.extend(
+            U32IntWire {
+                value: self.first_blocknum,
+            }
+            .to_bytes(),
+        );
+        bytes.extend(
+            U32IntWire {
+                value: self.number_of_blocks,
+            }
+            .to_bytes(),
+        );
+        bytes.extend(
+            SingleByteWire {
+                value: self.sync_complete,
+            }
+            .to_bytes(),
+        );
+        bytes.extend(U16SizedBytesWire::new(self.encoded_short_ids.clone()).to_bytes());
+        bytes.extend(
+            TLVStreamElement {
+                data: self.reply_channel_range_tlvs.clone(),
             }
             .to_bytes(),
         );

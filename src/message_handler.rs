@@ -32,6 +32,17 @@ impl MessageHandler {
                     Err(e) => return Err(MessageHandlerError::NodeConnectionError(e)),
                 };
             }
+            MessageContainer::GossipTimestampFilter(gtf) => {
+                println!("Responding to gossip timestamp filter.");
+                let mut our_filter = gtf.clone();
+                // we ask for all the gossip
+                our_filter.first_timestamp = 0;
+                let response = MessageContainer::GossipTimestampFilter(our_filter);
+                match conn.encrypt_and_send_message(&response).await {
+                    Ok(_) => (),
+                    Err(e) => return Err(MessageHandlerError::NodeConnectionError(e)),
+                };
+            }
             _ => {
                 // println!("Received but not handling message: {:?}", wrapped);
             }
