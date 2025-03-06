@@ -2,7 +2,7 @@ use crate::wire::{
     BytesSerializable, ChainHashElement, FeaturesStruct, GlobalFeaturesStruct, IgnoredStruct,
     LocalFeaturesStruct, MessageTypeWire, NumPongBytesStruct, PointElement, SerializationError,
     ShortChannelIDElement, SignatureElement, TLVStreamElement, TimestampElement,
-    TimestampRangeElement,
+    TimestampRangeElement, U32IntWire, Wire32Bytes,
 };
 
 use num_enum::TryFromPrimitive;
@@ -278,6 +278,64 @@ impl BytesSerializable for GossipTimestampFilterMessage {
         bytes.extend(
             TimestampRangeElement {
                 value: self.timestamp_range,
+            }
+            .to_bytes(),
+        );
+        bytes
+    }
+}
+
+#[derive(Debug)]
+pub struct QueryChannelRangeMessage {
+    chain_hash: [u8; 32],
+    first_blocknum: u32,
+    number_of_blocks: u32,
+    query_range_tlvs: Vec<u8>,
+}
+
+impl BytesSerializable for QueryChannelRangeMessage {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        let (_, data) = MessageTypeWire::from_bytes(data)?;
+        let (chain_hash, data) = ChainHashElement::from_bytes(data)?;
+        let (first_blocknum, data) = U32IntWire::from_bytes(data)?;
+        let (number_of_blocks, data) = U32IntWire::from_bytes(data)?;
+        let (query_range_tlvs, data) = TLVStreamElement::from_bytes(data)?;
+
+        Ok((
+            QueryChannelRangeMessage {
+                chain_hash: chain_hash.data,
+                first_blocknum: first_blocknum.value,
+                number_of_blocks: number_of_blocks.value,
+                query_range_tlvs: query_range_tlvs.data,
+            },
+            data,
+        ))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend(MessageTypeWire::new(MessageType::QueryChannelRange).to_bytes());
+        bytes.extend(
+            ChainHashElement {
+                data: self.chain_hash,
+            }
+            .to_bytes(),
+        );
+        bytes.extend(
+            U32IntWire {
+                value: self.first_blocknum,
+            }
+            .to_bytes(),
+        );
+        bytes.extend(
+            U32IntWire {
+                value: self.number_of_blocks,
+            }
+            .to_bytes(),
+        );
+        bytes.extend(
+            TLVStreamElement {
+                data: self.query_range_tlvs.clone(),
             }
             .to_bytes(),
         );
