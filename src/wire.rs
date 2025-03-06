@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::message_types::MessageTypeEnum;
 use crate::serialization::{
     ByteElement, ChainHashElement, MessageTypeElement, NodeAliasElement, PointElement,
-    RGBColorElement, Serializable, SerializableElement, SerializableTypes, ShortChannelIDElement,
+    RGBColorElement, Serializable, SerializableElement, SerializableType, ShortChannelIDElement,
     SignatureElement, TLVStreamElement, U16SerializedElement, U16SizedBytesElement,
     U32SerializedElement,
 };
@@ -51,41 +51,41 @@ enum WireElement {
 }
 
 impl WireElement {
-    pub fn as_serializable(element: WireElement) -> SerializableTypes {
+    pub fn as_serializable(element: WireElement) -> SerializableType {
         match element {
-            WireElement::MessageType => SerializableTypes::MessageType,
-            WireElement::GlobalFeatures => SerializableTypes::U16SizedBytes,
-            WireElement::LocalFeatures => SerializableTypes::U16SizedBytes,
-            WireElement::TLVStream => SerializableTypes::TLVStream,
-            WireElement::NumPongBytes => SerializableTypes::U16Element,
-            WireElement::Ignored => SerializableTypes::U16SizedBytes,
-            WireElement::Signature => SerializableTypes::Signature,
-            WireElement::NodeSignature1 => SerializableTypes::Signature,
-            WireElement::NodeSignature2 => SerializableTypes::Signature,
-            WireElement::BitcoinSignature1 => SerializableTypes::Signature,
-            WireElement::BitcoinSignature2 => SerializableTypes::Signature,
-            WireElement::Features => SerializableTypes::U16SizedBytes,
-            WireElement::ChainHash => SerializableTypes::ChainHash,
-            WireElement::ShortChannelID => SerializableTypes::ShortChannelID,
-            WireElement::NodeId => SerializableTypes::Point,
-            WireElement::NodeId1 => SerializableTypes::Point,
-            WireElement::NodeId2 => SerializableTypes::Point,
-            WireElement::BitcoinKey1 => SerializableTypes::Point,
-            WireElement::BitcoinKey2 => SerializableTypes::Point,
-            WireElement::Timestamp => SerializableTypes::U32Element,
-            WireElement::FirstTimestamp => SerializableTypes::U32Element,
-            WireElement::TimestampRange => SerializableTypes::U32Element,
-            WireElement::FirstBlockNum => SerializableTypes::U32Element,
-            WireElement::NumberOfBlocks => SerializableTypes::U32Element,
-            WireElement::RGBColor => SerializableTypes::RGBColor,
-            WireElement::NodeAlias => SerializableTypes::NodeAlias,
-            WireElement::Addresses => SerializableTypes::U16SizedBytes,
-            WireElement::QuerySortChannelIDsTLVS => SerializableTypes::TLVStream,
-            WireElement::QueryChannelRangeTLVs => SerializableTypes::TLVStream,
-            WireElement::FullInformation => SerializableTypes::Byte,
-            WireElement::SyncComplete => SerializableTypes::Byte,
-            WireElement::EncodedShortIds => SerializableTypes::U16SizedBytes,
-            WireElement::ReplyChannelRangeTLVs => SerializableTypes::TLVStream,
+            WireElement::MessageType => SerializableType::MessageType,
+            WireElement::GlobalFeatures => SerializableType::U16SizedBytes,
+            WireElement::LocalFeatures => SerializableType::U16SizedBytes,
+            WireElement::TLVStream => SerializableType::TLVStream,
+            WireElement::NumPongBytes => SerializableType::U16Element,
+            WireElement::Ignored => SerializableType::U16SizedBytes,
+            WireElement::Signature => SerializableType::Signature,
+            WireElement::NodeSignature1 => SerializableType::Signature,
+            WireElement::NodeSignature2 => SerializableType::Signature,
+            WireElement::BitcoinSignature1 => SerializableType::Signature,
+            WireElement::BitcoinSignature2 => SerializableType::Signature,
+            WireElement::Features => SerializableType::U16SizedBytes,
+            WireElement::ChainHash => SerializableType::ChainHash,
+            WireElement::ShortChannelID => SerializableType::ShortChannelID,
+            WireElement::NodeId => SerializableType::Point,
+            WireElement::NodeId1 => SerializableType::Point,
+            WireElement::NodeId2 => SerializableType::Point,
+            WireElement::BitcoinKey1 => SerializableType::Point,
+            WireElement::BitcoinKey2 => SerializableType::Point,
+            WireElement::Timestamp => SerializableType::U32Element,
+            WireElement::FirstTimestamp => SerializableType::U32Element,
+            WireElement::TimestampRange => SerializableType::U32Element,
+            WireElement::FirstBlockNum => SerializableType::U32Element,
+            WireElement::NumberOfBlocks => SerializableType::U32Element,
+            WireElement::RGBColor => SerializableType::RGBColor,
+            WireElement::NodeAlias => SerializableType::NodeAlias,
+            WireElement::Addresses => SerializableType::U16SizedBytes,
+            WireElement::QuerySortChannelIDsTLVS => SerializableType::TLVStream,
+            WireElement::QueryChannelRangeTLVs => SerializableType::TLVStream,
+            WireElement::FullInformation => SerializableType::Byte,
+            WireElement::SyncComplete => SerializableType::Byte,
+            WireElement::EncodedShortIds => SerializableType::U16SizedBytes,
+            WireElement::ReplyChannelRangeTLVs => SerializableType::TLVStream,
         }
     }
 }
@@ -177,51 +177,51 @@ impl WireFormatMessage {
         let mut bytes = bytes;
         for wire_element in wire_elements {
             let (obj, rem_bytes) = match WireElement::as_serializable(wire_element.clone()) {
-                SerializableTypes::MessageType => {
+                SerializableType::MessageType => {
                     let (obj, bytes) = MessageTypeElement::from_bytes(bytes).unwrap();
                     (SerializableElement::MessageType(obj), bytes)
                 }
-                SerializableTypes::U16Element => {
+                SerializableType::U16Element => {
                     let (obj, bytes) = U16SerializedElement::from_bytes(bytes).unwrap();
                     (SerializableElement::U16Element(obj), bytes)
                 }
-                SerializableTypes::U16SizedBytes => {
+                SerializableType::U16SizedBytes => {
                     let (obj, bytes) = U16SizedBytesElement::from_bytes(bytes).unwrap();
                     (SerializableElement::U16SizedBytes(obj), bytes)
                 }
-                SerializableTypes::TLVStream => {
+                SerializableType::TLVStream => {
                     let (obj, bytes) = TLVStreamElement::from_bytes(bytes).unwrap();
                     (SerializableElement::TLVStream(obj), bytes)
                 }
-                SerializableTypes::Signature => {
+                SerializableType::Signature => {
                     let (obj, bytes) = SignatureElement::from_bytes(bytes).unwrap();
                     (SerializableElement::Signature(obj), bytes)
                 }
-                SerializableTypes::ChainHash => {
+                SerializableType::ChainHash => {
                     let (obj, bytes) = ChainHashElement::from_bytes(bytes).unwrap();
                     (SerializableElement::ChainHash(obj), bytes)
                 }
-                SerializableTypes::ShortChannelID => {
+                SerializableType::ShortChannelID => {
                     let (obj, bytes) = ShortChannelIDElement::from_bytes(bytes).unwrap();
                     (SerializableElement::ShortChannelID(obj), bytes)
                 }
-                SerializableTypes::Point => {
+                SerializableType::Point => {
                     let (obj, bytes) = PointElement::from_bytes(bytes).unwrap();
                     (SerializableElement::Point(obj), bytes)
                 }
-                SerializableTypes::RGBColor => {
+                SerializableType::RGBColor => {
                     let (obj, bytes) = RGBColorElement::from_bytes(bytes).unwrap();
                     (SerializableElement::RGBColor(obj), bytes)
                 }
-                SerializableTypes::NodeAlias => {
+                SerializableType::NodeAlias => {
                     let (obj, bytes) = NodeAliasElement::from_bytes(bytes).unwrap();
                     (SerializableElement::NodeAlias(obj), bytes)
                 }
-                SerializableTypes::U32Element => {
+                SerializableType::U32Element => {
                     let (obj, bytes) = U32SerializedElement::from_bytes(bytes).unwrap();
                     (SerializableElement::U32Element(obj), bytes)
                 }
-                SerializableTypes::Byte => {
+                SerializableType::Byte => {
                     let (obj, bytes) = ByteElement::from_bytes(bytes).unwrap();
                     (SerializableElement::Byte(obj), bytes)
                 }

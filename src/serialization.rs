@@ -269,7 +269,7 @@ impl Serializable for RemainderElement {
 pub type TLVStreamElement = RemainderElement;
 
 #[derive(Debug)]
-pub enum SerializableTypes {
+pub enum SerializableType {
     MessageType,
     U16Element,
     U32Element,
