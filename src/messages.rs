@@ -108,8 +108,8 @@ impl BytesSerializable for InitMessage {
 
 #[derive(Debug)]
 pub struct PingMessage {
-    num_pong_bytes: u16,
-    ignored: Vec<u8>,
+    pub num_pong_bytes: u16,
+    pub ignored: Vec<u8>,
 }
 
 impl BytesSerializable for PingMessage {

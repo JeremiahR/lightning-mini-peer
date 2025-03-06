@@ -16,6 +16,17 @@ pub enum MessageContainer {
     ChannelAnnouncement(ChannelAnnouncementMessage),
 }
 
+impl MessageContainer {
+    pub fn to_bytes(&self) -> Vec<u8> {
+        match self {
+            MessageContainer::Init(message) => message.to_bytes(),
+            MessageContainer::Ping(message) => message.to_bytes(),
+            MessageContainer::Pong(message) => message.to_bytes(),
+            MessageContainer::ChannelAnnouncement(message) => message.to_bytes(),
+        }
+    }
+}
+
 pub struct MessageDecoder {}
 
 impl MessageDecoder {

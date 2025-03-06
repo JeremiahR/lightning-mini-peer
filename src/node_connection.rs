@@ -1,3 +1,5 @@
+use crate::message_decoder::MessageContainer;
+use crate::message_decoder::MessageDecoder;
 use crate::vendor::KeysManager;
 use bitcoin::secp256k1::PublicKey as BitcoinPublicKey;
 use bitcoin::secp256k1::Secp256k1;
@@ -16,6 +18,7 @@ use std::sync::Arc;
 #[derive(Debug)]
 pub enum NodeConnectionError {
     SocketError,
+    MessageDecodeError,
 }
 
 pub struct NodeConnection {
@@ -137,8 +140,7 @@ impl NodeConnection {
         }
     }
 
-    #[allow(dead_code)]
-    pub async fn get_next_message(&mut self) -> Result<Vec<u8>, NodeConnectionError> {
+    async fn read_stream(&mut self) -> Result<Vec<u8>, NodeConnectionError> {
         let mut header = self.read_n_bytes(18).await?;
         self.peer_encryptor
             .decrypt_message(header.as_mut())
@@ -153,4 +155,26 @@ impl NodeConnection {
         println!("decrypted message: {:?}", hex::encode(&message));
         Ok(message)
     }
+
+    pub async fn read_next_message(&mut self) -> Result<MessageContainer, NodeConnectionError> {
+        let bytes = match self.read_stream().await {
+            Ok(bytes) => bytes,
+            Err(err) => return Err(err),
+        };
+        let (message, _bytes) = match MessageDecoder::from_bytes(bytes.as_slice()) {
+            Ok(msg) => msg,
+            Err(_) => return Err(NodeConnectionError::MessageDecodeError),
+        };
+        Ok(message)
+    }
+
+    // pub async fn write_message(
+    //     &mut self,
+    //     message: MessageContainer,
+    // ) -> Result<(), NodeConnectionError> {
+    //     let mut bytes = message.to_bytes().as_slice();
+    //     self.peer_encryptor.encrypt_message(&bytes);
+    //     self.write_all(bytes.as_slice()).await?;
+    //     Ok(())
+    // }
 }
