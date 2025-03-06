@@ -5,6 +5,7 @@ use bitcoin::secp256k1::PublicKey as BitcoinPublicKey;
 use bitcoin::secp256k1::Secp256k1;
 use bitcoin::secp256k1::SecretKey;
 use bitcoin::secp256k1::SignOnly;
+use lightning::ln::msgs::LightningError;
 use lightning::ln::peer_channel_encryptor::{MessageBuf, NextNoiseStep};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
@@ -17,9 +18,10 @@ use std::sync::Arc;
 
 #[derive(Debug)]
 pub enum NodeConnectionError {
-    SocketError,
+    SocketError(std::io::Error),
     NoMessageFound,
     InvalidHeaderLength,
+    LightningError(LightningError),
     MessageDecodeError,
 }
 
@@ -37,7 +39,7 @@ impl NodeConnection {
             Ok(stream) => stream,
             Err(err) => {
                 println!("Failed to connect to {}: {}", node.address(), err);
-                return Err(NodeConnectionError::SocketError);
+                return Err(NodeConnectionError::SocketError(err));
             }
         };
         println!("Connected to {}", node.address());
@@ -60,7 +62,7 @@ impl NodeConnection {
             }
             Err(err) => {
                 println!("Failed to write data: {}", err);
-                Err(NodeConnectionError::SocketError)
+                Err(NodeConnectionError::SocketError(err))
             }
         }
     }
@@ -70,13 +72,9 @@ impl NodeConnection {
         match self.stream.read(&mut buffer).await {
             Ok(n) => {
                 let response = buffer[..n].to_vec();
-                println!("Read: {} bytes, {:?}", n, hex::encode(&response));
                 Ok(response)
             }
-            Err(err) => {
-                println!("Failed to receive act one: {:?}", err);
-                Err(NodeConnectionError::SocketError)
-            }
+            Err(err) => Err(NodeConnectionError::SocketError(err)),
         }
     }
 
@@ -86,7 +84,7 @@ impl NodeConnection {
             Ok(_) => Ok(()),
             Err(err) => {
                 println!("Failed to send act one: {:?}", err);
-                Err(NodeConnectionError::SocketError)
+                Err(err)
             }
         }
     }
@@ -100,12 +98,12 @@ impl NodeConnection {
                 Ok(_) => Ok(public_key),
                 Err(err) => {
                     println!("Failed to send act three: {:?}", err);
-                    Err(NodeConnectionError::SocketError)
+                    Err(err)
                 }
             },
             Err(err) => {
                 println!("Failed to process act two: {:?}", err);
-                Err(NodeConnectionError::SocketError)
+                Err(NodeConnectionError::LightningError(err))
             }
         }
     }
@@ -137,7 +135,7 @@ impl NodeConnection {
             }
             Err(err) => {
                 println!("Failed to send init: {:?}", err);
-                Err(NodeConnectionError::SocketError)
+                Err(err)
             }
         }
     }
