@@ -1,10 +1,11 @@
 use crate::wire::{
     BytesSerializable, ChainHashElement, FeaturesStruct, GlobalFeaturesStruct, IgnoredStruct,
-    LocalFeaturesStruct, MessageTypeWire, NodeAliasElement, NumPongBytesStruct, PointElement,
-    SerializationError, ShortChannelIDElement, SignatureElement, TLVStreamElement,
+    LocalFeaturesStruct, MessageTypeWire, NumPongBytesStruct, PointElement, SerializationError,
+    ShortChannelIDElement, SignatureElement, TLVStreamElement,
 };
 
 use num_enum::TryFromPrimitive;
+use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, IntoStaticStr};
 
 #[derive(Debug, EnumIter, Copy, Clone, Eq, PartialEq, Hash, IntoStaticStr, TryFromPrimitive)]
@@ -66,10 +67,14 @@ impl MessageType {
     pub fn as_u16(&self) -> u16 {
         *self as u16
     }
+
+    pub fn from_int(n: u16) -> Option<Self> {
+        MessageType::iter().find(|&variant| variant as u16 == n)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct InitMessage {
+pub struct InitMessage {
     global_features: Vec<u8>,
     local_features: Vec<u8>,
     tlv: Vec<u8>,
@@ -101,7 +106,8 @@ impl BytesSerializable for InitMessage {
     }
 }
 
-struct PingMessage {
+#[derive(Debug)]
+pub struct PingMessage {
     num_pong_bytes: u16,
     ignored: Vec<u8>,
 }
@@ -129,7 +135,8 @@ impl BytesSerializable for PingMessage {
     }
 }
 
-struct PongMessage {
+#[derive(Debug)]
+pub struct PongMessage {
     ignored: Vec<u8>,
 }
 
@@ -153,7 +160,8 @@ impl BytesSerializable for PongMessage {
     }
 }
 
-struct ChannelAnnouncementMessage {
+#[derive(Debug)]
+pub struct ChannelAnnouncementMessage {
     node_signature_1: [u8; 64],
     node_signature_2: [u8; 64],
     bitcoin_signature_1: [u8; 64],

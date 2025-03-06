@@ -1,9 +1,12 @@
+use message_decoder::MessageDecoder;
+
 use crate::util::new_random_secret_key;
 use crate::util::parse_node;
 
 use crate::node_connection::NodeConnection;
 use std::env;
 
+mod message_decoder;
 mod messages;
 mod node;
 mod node_connection;
@@ -39,15 +42,21 @@ async fn main() {
             return;
         }
     }
-    // match node_conn.get_next_message().await {
-    //     Ok(bytes) => {
-    //         println!("Received bytes: {:?}", bytes);
-    //         let res = WireFormatMessage::from_bytes(bytes.as_slice());
-    //         println!("Received message: {:?}", res);
-    //     }
-    //     Err(err) => {
-    //         println!("Failed to read: {:?}", err);
-    //         return;
-    //     }
-    // }
+    match node_conn.get_next_message().await {
+        Ok(bytes) => {
+            println!("Received bytes: {:?}", bytes);
+            let res = match MessageDecoder::from_bytes(bytes.as_slice()) {
+                Ok(msg) => msg,
+                Err(err) => {
+                    println!("Failed to decode message: {:?}", err);
+                    return;
+                }
+            };
+            println!("Received message: {:?}", res);
+        }
+        Err(err) => {
+            println!("Failed to read: {:?}", err);
+            return;
+        }
+    }
 }
