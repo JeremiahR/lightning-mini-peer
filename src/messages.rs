@@ -226,6 +226,33 @@ impl BytesSerializable for ChannelAnnouncementMessage {
     }
 }
 
+#[derive(Debug)]
+pub struct UnknownMessage {
+    type_id: u16,
+    data: Vec<u8>,
+}
+
+impl BytesSerializable for UnknownMessage {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        let (message, data) = MessageTypeWire::from_bytes(data)?;
+
+        Ok((
+            UnknownMessage {
+                type_id: message.id,
+                data: data.to_vec(),
+            },
+            &[],
+        ))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend(MessageTypeWire { id: self.type_id }.to_bytes());
+        bytes.extend(self.data.clone());
+        bytes
+    }
+}
+
 #[test]
 fn test_decode_init_message() {
     let initial_bytes = hex::decode("001000021100000708a0880a8a59a1012006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f2d7ef99482067a1b72fe9e411d37be8c").unwrap();

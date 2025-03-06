@@ -297,5 +297,6 @@ pub type TLVStreamElement = RemainderTypeWire;
 pub type ShortChannelIDElement = Bytes8Element;
 pub type SignatureElement = Wire64Bytes;
 pub type ChainHashElement = Wire32Bytes;
+#[allow(dead_code)]
 pub type NodeAliasElement = Wire32Bytes;
 pub type PointElement = Wire33Bytes;
