@@ -52,11 +52,12 @@ async fn main() {
             return;
         }
     }
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
     let ping = PingMessage {
         num_pong_bytes: 10,
         ignored: vec![0; 10],
     };
-    match node_conn.send_message(ping.to_bytes().as_slice()).await {
+    match node_conn.encrypt_and_send(ping.to_bytes().as_slice()).await {
         Ok(_) => (),
         Err(err) => {
             println!("Failed to send ping: {:?}", err);
@@ -64,16 +65,16 @@ async fn main() {
         }
     }
     loop {
-        let _ = node_conn.wait_for_message().await;
         match node_conn.read_next_message().await {
             Ok(res) => {
                 println!("Received message: {:?}", res);
             }
             Err(err) => {
                 println!("Failed to read: {:?}", err);
+                break;
             }
         }
         // sleep for a bit
-        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
 }

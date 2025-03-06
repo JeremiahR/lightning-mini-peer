@@ -18,9 +18,12 @@ use std::sync::Arc;
 
 #[derive(Debug)]
 pub enum NodeConnectionError {
-    SocketError(std::io::Error),
+    HandshakeFailed,
     NoMessageFound,
     InvalidHeaderLength,
+    DecryptionError(LightningError),
+    ConnectionError(std::io::Error),
+    IOError(std::io::Error),
     LightningError(LightningError),
     MessageDecodeError,
 }
@@ -39,10 +42,10 @@ impl NodeConnection {
             Ok(stream) => stream,
             Err(err) => {
                 println!("Failed to connect to {}: {}", node.address(), err);
-                return Err(NodeConnectionError::SocketError(err));
+                return Err(NodeConnectionError::ConnectionError(err));
             }
         };
-        println!("Connected to {}", node.address());
+        println!("Connected to {} @ {}", node.public_key, node.address());
         Ok(NodeConnection {
             stream,
             secp: Secp256k1::signing_only(),
@@ -54,132 +57,87 @@ impl NodeConnection {
         })
     }
 
-    async fn write_all(&mut self, data: &[u8]) -> Result<(), NodeConnectionError> {
+    async fn write_raw_data(&mut self, data: &[u8]) -> Result<(), NodeConnectionError> {
         match self.stream.write_all(data).await {
-            Ok(_) => {
-                println!("Wrote {:?}", hex::encode(data));
-                Ok(())
-            }
-            Err(err) => {
-                println!("Failed to write data: {}", err);
-                Err(NodeConnectionError::SocketError(err))
-            }
+            Ok(_) => Ok(()),
+            Err(err) => Err(NodeConnectionError::IOError(err)),
         }
     }
 
-    async fn read_n_bytes(&mut self, num_bytes: usize) -> Result<Vec<u8>, NodeConnectionError> {
+    async fn read_exact_n_bytes(
+        &mut self,
+        num_bytes: usize,
+    ) -> Result<Vec<u8>, NodeConnectionError> {
         let mut buffer: Vec<u8> = vec![0; num_bytes as usize];
-        match self.stream.read(&mut buffer).await {
+        match self.stream.read_exact(&mut buffer).await {
             Ok(n) => {
                 let response = buffer[..n].to_vec();
                 Ok(response)
             }
-            Err(err) => Err(NodeConnectionError::SocketError(err)),
+            Err(err) => Err(NodeConnectionError::IOError(err)),
         }
-    }
-
-    async fn send_act_one(&mut self) -> Result<(), NodeConnectionError> {
-        let act_one = self.peer_encryptor.get_act_one(&self.secp);
-        match self.write_all(&act_one).await {
-            Ok(_) => Ok(()),
-            Err(err) => {
-                println!("Failed to send act one: {:?}", err);
-                Err(err)
-            }
-        }
-    }
-
-    async fn process_act_two(
-        &mut self,
-        act_two: Vec<u8>,
-    ) -> Result<BitcoinPublicKey, NodeConnectionError> {
-        match self.peer_encryptor.process_act_two(&act_two, &self.km) {
-            Ok((act_three, public_key)) => match self.write_all(&act_three).await {
-                Ok(_) => Ok(public_key),
-                Err(err) => {
-                    println!("Failed to send act three: {:?}", err);
-                    Err(err)
-                }
-            },
-            Err(err) => {
-                println!("Failed to process act two: {:?}", err);
-                Err(NodeConnectionError::LightningError(err))
-            }
-        }
-    }
-
-    async fn print_noise_state(&self) {
-        let state = match self.peer_encryptor.get_noise_step() {
-            NextNoiseStep::ActOne => "Act One",
-            NextNoiseStep::ActTwo => "Act Two",
-            NextNoiseStep::ActThree => "Act Three",
-            NextNoiseStep::NoiseComplete => "Noise Complete",
-        };
-        println!("Noise state: {}", state);
     }
 
     pub async fn handshake(&mut self) -> Result<BitcoinPublicKey, NodeConnectionError> {
-        self.send_act_one().await?;
-        let act_two = self.read_n_bytes(66).await?;
-        let public_key = self.process_act_two(act_two).await?;
-        self.print_noise_state().await;
+        let act_one = self.peer_encryptor.get_act_one(&self.secp);
+        match self.write_raw_data(&act_one).await {
+            Ok(_) => (),
+            Err(err) => return Err(err),
+        }
+        let act_two = self.read_exact_n_bytes(50).await?;
+        let (act_three, public_key) = match self.peer_encryptor.process_act_two(&act_two, &self.km)
+        {
+            Ok((x, y)) => (x, y),
+            Err(err) => return Err(NodeConnectionError::LightningError(err)),
+        };
+        assert_eq!(act_three.len(), 66);
+        match self.write_raw_data(&act_three).await {
+            Ok(_) => (),
+            Err(err) => return Err(err),
+        };
+        match self.peer_encryptor.get_noise_step() {
+            NextNoiseStep::NoiseComplete => println!("Handshake completed with {}", public_key),
+            _ => return Err(NodeConnectionError::HandshakeFailed),
+        }
         Ok(public_key)
     }
 
     pub async fn send_init(&mut self) -> Result<(), NodeConnectionError> {
         let init = b"\x00\x10\x00\x00\x00\x01\xaa";
-        match self.write_all(init).await {
-            Ok(_) => {
-                println!("sent init");
-                Ok(())
-            }
-            Err(err) => {
-                println!("Failed to send init: {:?}", err);
-                Err(err)
-            }
-        }
+        self.encrypt_and_send(init).await
     }
 
-    pub async fn wait_for_message(&mut self) -> tokio::io::Result<()> {
+    pub async fn wait_for_message(&mut self) -> Result<(), NodeConnectionError> {
         match self.stream.readable().await {
-            Ok(_) => {
-                println!("message waiting");
-                Ok(())
-            }
-            Err(err) => {
-                println!("Failed to wait for message: {:?}", err);
-                Ok(()) // this is def cheating
-            }
+            Ok(_) => Ok(()),
+            Err(err) => Err(NodeConnectionError::IOError(err)),
         }
     }
 
     async fn read_stream(&mut self) -> Result<Vec<u8>, NodeConnectionError> {
-        let mut header = match self.read_n_bytes(18).await {
+        let mut header = match self.read_exact_n_bytes(18).await {
             Ok(header) => header,
             Err(err) => return Err(err),
         };
         if header.len() != 18 {
             return Err(NodeConnectionError::InvalidHeaderLength);
         }
-        self.peer_encryptor
-            .decrypt_message(header.as_mut())
-            .unwrap();
-        println!("decrypted header: {:?}", hex::encode(&header));
+        match self.peer_encryptor.decrypt_message(header.as_mut()) {
+            Ok(_) => (),
+            Err(err) => return Err(NodeConnectionError::DecryptionError(err)),
+        }
         let length = u16::from_be_bytes([header[0], header[1]]);
-        let mut message = self.read_n_bytes(length as usize + 16).await?;
-        self.peer_encryptor
-            .decrypt_message(message.as_mut())
-            .unwrap();
-        println!("decrypted message: {:?}", hex::encode(&message));
+        let mut message = self.read_exact_n_bytes(length as usize + 16).await?;
+        match self.peer_encryptor.decrypt_message(message.as_mut()) {
+            Ok(_) => (),
+            Err(err) => return Err(NodeConnectionError::DecryptionError(err)),
+        }
         Ok(message)
     }
 
     pub async fn read_next_message(&mut self) -> Result<MessageContainer, NodeConnectionError> {
-        let bytes = match self.read_stream().await {
-            Ok(bytes) => bytes,
-            Err(err) => return Err(err),
-        };
-        println!("length: {}", bytes.len());
+        self.wait_for_message().await?;
+        let bytes = self.read_stream().await?;
         if bytes.is_empty() {
             return Err(NodeConnectionError::NoMessageFound);
         }
@@ -190,17 +148,10 @@ impl NodeConnection {
         Ok(message)
     }
 
-    pub async fn send_message(&mut self, bytes: &[u8]) -> Result<(), NodeConnectionError> {
-        let cleartext = hex::encode(bytes);
+    pub async fn encrypt_and_send(&mut self, bytes: &[u8]) -> Result<(), NodeConnectionError> {
         let buf = MessageBuf::from_encoded(bytes);
         let encrypted = self.peer_encryptor.encrypt_buffer(buf);
-        println!(
-            "sending, cleartext: {:?}, encrypted: {:?}",
-            cleartext,
-            hex::encode(&encrypted)
-        );
-        self.write_all(encrypted.as_slice()).await?;
-        println!("message sent");
+        self.write_raw_data(encrypted.as_slice()).await?;
         Ok(())
     }
 }
