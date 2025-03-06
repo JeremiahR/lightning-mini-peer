@@ -19,10 +19,8 @@ pub enum NodeConnectionError {
 }
 
 pub struct NodeConnection {
-    node_public_key: BitcoinPublicKey,
     stream: TcpStream,
     secp: Secp256k1<SignOnly>,
-    ephemeral_key: SecretKey,
     peer_encryptor: PeerChannelEncryptor,
     km: Arc<KeysManager>,
 }
@@ -39,10 +37,8 @@ impl NodeConnection {
         };
         println!("Connected to {}", node.address());
         Ok(NodeConnection {
-            node_public_key: node.bitcoin_public_key(),
             stream,
             secp: Secp256k1::signing_only(),
-            ephemeral_key,
             peer_encryptor: PeerChannelEncryptor::new_outbound(
                 node.bitcoin_public_key().clone(),
                 ephemeral_key,
@@ -93,7 +89,7 @@ impl NodeConnection {
     async fn process_act_two(
         &mut self,
         act_two: Vec<u8>,
-    ) -> Result<(BitcoinPublicKey), NodeConnectionError> {
+    ) -> Result<BitcoinPublicKey, NodeConnectionError> {
         match self.peer_encryptor.process_act_two(&act_two, &self.km) {
             Ok((act_three, public_key)) => match self.write_all(&act_three).await {
                 Ok(_) => Ok(public_key),
@@ -128,7 +124,7 @@ impl NodeConnection {
     }
 
     pub async fn send_init(&mut self) -> Result<(), NodeConnectionError> {
-        let mut init = b"\x00\x10\x00\x00\x00\x01\xaa";
+        let init = b"\x00\x10\x00\x00\x00\x01\xaa";
         match self.write_all(init).await {
             Ok(_) => {
                 println!("sent init");
@@ -141,6 +137,7 @@ impl NodeConnection {
         }
     }
 
+    #[allow(dead_code)]
     pub async fn get_next_message(&mut self) -> Result<Vec<u8>, NodeConnectionError> {
         let mut header = self.read_n_bytes(18).await?;
         self.peer_encryptor
