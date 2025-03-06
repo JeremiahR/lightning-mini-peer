@@ -1,12 +1,14 @@
 use crate::wire::{
     BytesSerializable, ChainHashElement, FeaturesStruct, GlobalFeaturesStruct, IgnoredStruct,
     LocalFeaturesStruct, MessageTypeWire, NumPongBytesStruct, PointElement, SerializationError,
-    ShortChannelIDElement, SignatureElement, TLVStreamElement,
+    ShortChannelIDElement, SignatureElement, TLVStreamElement, TimestampElement,
+    TimestampRangeElement,
 };
 
 use num_enum::TryFromPrimitive;
 use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, IntoStaticStr};
+use tokio::time::timeout;
 
 #[derive(Debug, EnumIter, Copy, Clone, Eq, PartialEq, Hash, IntoStaticStr, TryFromPrimitive)]
 #[repr(u16)]
@@ -230,6 +232,55 @@ impl BytesSerializable for ChannelAnnouncementMessage {
         bytes.extend(PointElement::new(self.node_id_2).to_bytes());
         bytes.extend(PointElement::new(self.bitcoin_node_id_1).to_bytes());
         bytes.extend(PointElement::new(self.bitcoin_node_id_2).to_bytes());
+        bytes
+    }
+}
+
+#[derive(Debug)]
+pub struct GossipTimestampFilterMessage {
+    chain_hash: [u8; 32],
+    first_timestamp: u32,
+    timestamp_range: u32,
+}
+
+impl BytesSerializable for GossipTimestampFilterMessage {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        let (_, data) = MessageTypeWire::from_bytes(data)?;
+        let (chain_hash, data) = ChainHashElement::from_bytes(data)?;
+        let (first_timestamp, data) = TimestampElement::from_bytes(data)?;
+        let (timestamp_range, data) = TimestampRangeElement::from_bytes(data)?;
+
+        Ok((
+            GossipTimestampFilterMessage {
+                chain_hash: chain_hash.data,
+                first_timestamp: first_timestamp.value,
+                timestamp_range: timestamp_range.value,
+            },
+            data,
+        ))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend(MessageTypeWire::new(MessageType::GossipTimestampFilter).to_bytes());
+        bytes.extend(
+            ChainHashElement {
+                data: self.chain_hash,
+            }
+            .to_bytes(),
+        );
+        bytes.extend(
+            TimestampElement {
+                value: self.first_timestamp,
+            }
+            .to_bytes(),
+        );
+        bytes.extend(
+            TimestampRangeElement {
+                value: self.timestamp_range,
+            }
+            .to_bytes(),
+        );
         bytes
     }
 }

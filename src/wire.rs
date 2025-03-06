@@ -140,17 +140,17 @@ impl BytesSerializable for U16IntWire {
 }
 
 #[derive(Debug)]
-pub struct U32SerializedElement {
-    value: u32,
+pub struct U32IntWire {
+    pub value: u32,
 }
 
-impl BytesSerializable for U32SerializedElement {
+impl BytesSerializable for U32IntWire {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 4 {
             return Err(SerializationError::TooFewBytes);
         }
         let value = u32::from_be_bytes([data[0], data[1], data[2], data[3]]);
-        Ok((U32SerializedElement { value }, &data[4..]))
+        Ok((U32IntWire { value }, &data[4..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
@@ -292,6 +292,8 @@ pub type IgnoredStruct = U16SizedBytesWire;
 pub type NumPongBytesStruct = U16IntWire;
 pub type GlobalFeaturesStruct = U16SizedBytesWire;
 pub type LocalFeaturesStruct = U16SizedBytesWire;
+pub type TimestampElement = U32IntWire;
+pub type TimestampRangeElement = U32IntWire;
 pub type FeaturesStruct = U16SizedBytesWire;
 pub type TLVStreamElement = RemainderTypeWire;
 pub type ShortChannelIDElement = Bytes8Element;

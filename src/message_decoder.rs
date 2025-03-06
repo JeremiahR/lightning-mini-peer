@@ -1,5 +1,6 @@
 use crate::messages::{
-    ChannelAnnouncementMessage, InitMessage, MessageType, PingMessage, PongMessage, UnknownMessage,
+    ChannelAnnouncementMessage, GossipTimestampFilterMessage, InitMessage, MessageType,
+    PingMessage, PongMessage, UnknownMessage,
 };
 use crate::wire::{BytesSerializable, MessageTypeWire};
 
@@ -14,6 +15,7 @@ pub enum MessageContainer {
     Ping(PingMessage),
     Pong(PongMessage),
     ChannelAnnouncement(ChannelAnnouncementMessage),
+    GossipTimestampFilter(GossipTimestampFilterMessage),
     Unknown(UnknownMessage),
 }
 
@@ -24,6 +26,7 @@ impl MessageContainer {
             MessageContainer::Ping(message) => message.to_bytes(),
             MessageContainer::Pong(message) => message.to_bytes(),
             MessageContainer::ChannelAnnouncement(message) => message.to_bytes(),
+            MessageContainer::GossipTimestampFilter(message) => message.to_bytes(),
             MessageContainer::Unknown(message) => message.to_bytes(),
         }
     }
