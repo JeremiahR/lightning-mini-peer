@@ -288,7 +288,7 @@ impl BytesSerializable for RemainderTypeWire {
     }
 }
 
-pub type IgnoredStruct = RemainderTypeWire;
+pub type IgnoredStruct = U16SizedBytesWire;
 pub type NumPongBytesStruct = U16IntWire;
 pub type GlobalFeaturesStruct = U16SizedBytesWire;
 pub type LocalFeaturesStruct = U16SizedBytesWire;
