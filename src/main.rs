@@ -1,3 +1,5 @@
+use message_decoder::MessageContainer;
+use messages::InitMessage;
 use messages::PingMessage;
 use wire::BytesSerializable;
 
@@ -36,12 +38,11 @@ async fn main() {
             return;
         }
     };
-    match node_conn.send_init().await {
-        Ok(_) => (),
-        Err(err) => {
-            println!("Failed to send init: {:?}", err);
-            return;
-        }
+    {
+        let init = b"\x00\x10\x00\x00\x00\x01\xaa";
+        let (im, _) = InitMessage::from_bytes(init).unwrap();
+        let wrapped = MessageContainer::Init(im);
+        node_conn.encrypt_and_send_message(&wrapped).await.unwrap();
     }
     match node_conn.read_next_message().await {
         Ok(res) => {
@@ -53,16 +54,13 @@ async fn main() {
         }
     }
     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-    let ping = PingMessage {
-        num_pong_bytes: 10,
-        ignored: vec![0; 10],
-    };
-    match node_conn.encrypt_and_send(ping.to_bytes().as_slice()).await {
-        Ok(_) => (),
-        Err(err) => {
-            println!("Failed to send ping: {:?}", err);
-            return;
-        }
+    {
+        let ping = PingMessage {
+            num_pong_bytes: 10,
+            ignored: vec![0; 10],
+        };
+        let wrapped = MessageContainer::Ping(ping);
+        node_conn.encrypt_and_send_message(&wrapped).await.unwrap();
     }
     loop {
         match node_conn.read_next_message().await {
@@ -74,7 +72,6 @@ async fn main() {
                 break;
             }
         }
-        // sleep for a bit
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
 }

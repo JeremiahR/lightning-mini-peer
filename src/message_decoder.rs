@@ -89,7 +89,7 @@ mod tests {
 
     fn read_example_messages() -> Vec<String> {
         // open examples file
-        let f = File::open("examples").unwrap();
+        let f = File::open("test/examples").unwrap();
         let reader = BufReader::new(f);
         let lines = reader.lines();
         // return a vec of strings

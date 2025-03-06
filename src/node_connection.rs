@@ -13,9 +13,9 @@ use tokio::net::TcpStream;
 use crate::node::Node;
 use crate::util::new_random_secret_key;
 use crate::vendor::PeerChannelEncryptor;
-use hex;
 use std::sync::Arc;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum NodeConnectionError {
     HandshakeFailed,
@@ -102,19 +102,14 @@ impl NodeConnection {
         Ok(public_key)
     }
 
-    pub async fn send_init(&mut self) -> Result<(), NodeConnectionError> {
-        let init = b"\x00\x10\x00\x00\x00\x01\xaa";
-        self.encrypt_and_send(init).await
-    }
-
-    pub async fn wait_for_message(&mut self) -> Result<(), NodeConnectionError> {
+    async fn wait_for_message(&mut self) -> Result<(), NodeConnectionError> {
         match self.stream.readable().await {
             Ok(_) => Ok(()),
             Err(err) => Err(NodeConnectionError::IOError(err)),
         }
     }
 
-    async fn read_stream(&mut self) -> Result<Vec<u8>, NodeConnectionError> {
+    async fn read_next_message_bytes(&mut self) -> Result<Vec<u8>, NodeConnectionError> {
         let mut header = match self.read_exact_n_bytes(18).await {
             Ok(header) => header,
             Err(err) => return Err(err),
@@ -137,7 +132,7 @@ impl NodeConnection {
 
     pub async fn read_next_message(&mut self) -> Result<MessageContainer, NodeConnectionError> {
         self.wait_for_message().await?;
-        let bytes = self.read_stream().await?;
+        let bytes = self.read_next_message_bytes().await?;
         if bytes.is_empty() {
             return Err(NodeConnectionError::NoMessageFound);
         }
@@ -148,10 +143,23 @@ impl NodeConnection {
         Ok(message)
     }
 
-    pub async fn encrypt_and_send(&mut self, bytes: &[u8]) -> Result<(), NodeConnectionError> {
+    pub async fn encrypt_and_send_bytes(
+        &mut self,
+        bytes: &[u8],
+    ) -> Result<(), NodeConnectionError> {
         let buf = MessageBuf::from_encoded(bytes);
         let encrypted = self.peer_encryptor.encrypt_buffer(buf);
         self.write_raw_data(encrypted.as_slice()).await?;
+        Ok(())
+    }
+
+    pub async fn encrypt_and_send_message(
+        &mut self,
+        message: &MessageContainer,
+    ) -> Result<(), NodeConnectionError> {
+        let bytes = message.to_bytes();
+        self.encrypt_and_send_bytes(bytes.as_slice()).await?;
+        println!("Sent message {:?}", message);
         Ok(())
     }
 }
