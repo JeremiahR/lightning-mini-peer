@@ -263,6 +263,32 @@ impl BytesSerializable for Bytes8Element {
 }
 
 #[derive(Debug)]
+pub struct Bytes3Element {
+    pub data: [u8; 3],
+}
+
+impl Bytes3Element {
+    pub fn new(data: [u8; 3]) -> Self {
+        Bytes3Element { data }
+    }
+}
+
+impl BytesSerializable for Bytes3Element {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        if data.len() < 3 {
+            return Err(SerializationError::TooFewBytes);
+        }
+        let mut bytes = [0u8; 3];
+        bytes.copy_from_slice(&data[..3]);
+        Ok((Bytes3Element { data: bytes }, &data[3..]))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.data.to_vec()
+    }
+}
+
+#[derive(Debug)]
 pub struct RemainderTypeWire {
     pub data: Vec<u8>,
 }
@@ -301,4 +327,4 @@ pub type SignatureElement = Wire64Bytes;
 pub type ChainHashElement = Wire32Bytes;
 #[allow(dead_code)]
 pub type NodeAliasElement = Wire32Bytes;
-pub type PointElement = Wire33Bytes;
+pub type PointElementWire = Wire33Bytes;

@@ -1,8 +1,8 @@
 use crate::wire::{
-    BytesSerializable, ChainHashElement, FeaturesStruct, GlobalFeaturesStruct, IgnoredStruct,
-    LocalFeaturesStruct, MessageTypeWire, NumPongBytesStruct, PointElement, SerializationError,
-    ShortChannelIDElement, SignatureElement, SingleByteWire, TLVStreamElement, TimestampElement,
-    TimestampRangeElement, U16SizedBytesWire, U32IntWire,
+    Bytes3Element, BytesSerializable, ChainHashElement, FeaturesStruct, GlobalFeaturesStruct,
+    IgnoredStruct, LocalFeaturesStruct, MessageTypeWire, NumPongBytesStruct, PointElementWire,
+    SerializationError, ShortChannelIDElement, SignatureElement, SingleByteWire, TLVStreamElement,
+    TimestampElement, TimestampRangeElement, U16SizedBytesWire, U32IntWire, Wire32Bytes,
 };
 
 use num_enum::TryFromPrimitive;
@@ -194,10 +194,10 @@ impl BytesSerializable for ChannelAnnouncementMessage {
         let (features, data) = FeaturesStruct::from_bytes(data)?;
         let (chain_hash, data) = ChainHashElement::from_bytes(data)?;
         let (short_channel_id, data) = ShortChannelIDElement::from_bytes(data)?;
-        let (node_id_1, data) = PointElement::from_bytes(data)?;
-        let (node_id_2, data) = PointElement::from_bytes(data)?;
-        let (bitcoin_node_id_1, data) = PointElement::from_bytes(data)?;
-        let (bitcoin_node_id_2, data) = PointElement::from_bytes(data)?;
+        let (node_id_1, data) = PointElementWire::from_bytes(data)?;
+        let (node_id_2, data) = PointElementWire::from_bytes(data)?;
+        let (bitcoin_node_id_1, data) = PointElementWire::from_bytes(data)?;
+        let (bitcoin_node_id_2, data) = PointElementWire::from_bytes(data)?;
 
         Ok((
             ChannelAnnouncementMessage {
@@ -227,10 +227,10 @@ impl BytesSerializable for ChannelAnnouncementMessage {
         bytes.extend(FeaturesStruct::new(self.features.clone()).to_bytes());
         bytes.extend(ChainHashElement::new(self.chain_hash).to_bytes());
         bytes.extend(ShortChannelIDElement::new(self.short_channel_id).to_bytes());
-        bytes.extend(PointElement::new(self.node_id_1).to_bytes());
-        bytes.extend(PointElement::new(self.node_id_2).to_bytes());
-        bytes.extend(PointElement::new(self.bitcoin_node_id_1).to_bytes());
-        bytes.extend(PointElement::new(self.bitcoin_node_id_2).to_bytes());
+        bytes.extend(PointElementWire::new(self.node_id_1).to_bytes());
+        bytes.extend(PointElementWire::new(self.node_id_2).to_bytes());
+        bytes.extend(PointElementWire::new(self.bitcoin_node_id_1).to_bytes());
+        bytes.extend(PointElementWire::new(self.bitcoin_node_id_2).to_bytes());
         bytes
     }
 }
@@ -409,6 +409,61 @@ impl BytesSerializable for ReplyChannelRangeMessage {
             }
             .to_bytes(),
         );
+        bytes
+    }
+}
+
+#[derive(Debug)]
+pub struct NodeAnnouncementMessage {
+    signature: [u8; 64],
+    features: Vec<u8>,
+    timestamp: u32,
+    node_id: [u8; 33],
+    rgb_color: [u8; 3],
+    alias: [u8; 32],
+    addresses: Vec<u8>,
+}
+
+impl BytesSerializable for NodeAnnouncementMessage {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        let (_, data) = MessageTypeWire::from_bytes(data)?;
+        let (signature, data) = SignatureElement::from_bytes(data)?;
+        let (features, data) = U16SizedBytesWire::from_bytes(data)?;
+        let (timestamp, data) = U32IntWire::from_bytes(data)?;
+        let (node_id, data) = PointElementWire::from_bytes(data)?;
+        let (rgb_color, data) = Bytes3Element::from_bytes(data)?;
+        let (alias, data) = Wire32Bytes::from_bytes(data)?;
+        let (addresses, data) = U16SizedBytesWire::from_bytes(data)?;
+
+        Ok((
+            NodeAnnouncementMessage {
+                signature: signature.data,
+                features: features.data,
+                timestamp: timestamp.value,
+                node_id: node_id.data,
+                rgb_color: rgb_color.data,
+                alias: alias.data,
+                addresses: addresses.data,
+            },
+            data,
+        ))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend(MessageTypeWire::new(MessageType::NodeAnnouncement).to_bytes());
+        bytes.extend(SignatureElement::new(self.signature).to_bytes());
+        bytes.extend(U16SizedBytesWire::new(self.features.clone()).to_bytes());
+        bytes.extend(
+            U32IntWire {
+                value: self.timestamp,
+            }
+            .to_bytes(),
+        );
+        bytes.extend(PointElementWire::new(self.node_id).to_bytes());
+        bytes.extend(Bytes3Element::new(self.rgb_color).to_bytes());
+        bytes.extend(Wire32Bytes::new(self.alias).to_bytes());
+        bytes.extend(U16SizedBytesWire::new(self.addresses.clone()).to_bytes());
         bytes
     }
 }

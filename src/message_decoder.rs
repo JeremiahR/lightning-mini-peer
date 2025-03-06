@@ -1,6 +1,7 @@
 use crate::messages::{
     ChannelAnnouncementMessage, GossipTimestampFilterMessage, InitMessage, MessageType,
-    PingMessage, PongMessage, QueryChannelRangeMessage, ReplyChannelRangeMessage, UnknownMessage,
+    NodeAnnouncementMessage, PingMessage, PongMessage, QueryChannelRangeMessage,
+    ReplyChannelRangeMessage, UnknownMessage,
 };
 use crate::wire::{BytesSerializable, MessageTypeWire};
 
@@ -16,6 +17,7 @@ pub enum MessageContainer {
     Ping(PingMessage),
     Pong(PongMessage),
     ChannelAnnouncement(ChannelAnnouncementMessage),
+    NodeAnnouncement(NodeAnnouncementMessage),
     GossipTimestampFilter(GossipTimestampFilterMessage),
     QueryChannelRange(QueryChannelRangeMessage),
     ReplyChannelRange(ReplyChannelRangeMessage),
@@ -29,6 +31,7 @@ impl MessageContainer {
             MessageContainer::Ping(message) => message.to_bytes(),
             MessageContainer::Pong(message) => message.to_bytes(),
             MessageContainer::ChannelAnnouncement(message) => message.to_bytes(),
+            MessageContainer::NodeAnnouncement(message) => message.to_bytes(),
             MessageContainer::GossipTimestampFilter(message) => message.to_bytes(),
             MessageContainer::QueryChannelRange(message) => message.to_bytes(),
             MessageContainer::ReplyChannelRange(message) => message.to_bytes(),
@@ -74,6 +77,13 @@ impl MessageDecoder {
                     Err(_) => return Err(MessageDecoderError::Error),
                 };
                 Ok((MessageContainer::ChannelAnnouncement(message), data))
+            }
+            MessageType::NodeAnnouncement => {
+                let (message, data) = match NodeAnnouncementMessage::from_bytes(bytes) {
+                    Ok(x) => x,
+                    Err(_) => return Err(MessageDecoderError::Error),
+                };
+                Ok((MessageContainer::NodeAnnouncement(message), data))
             }
             MessageType::GossipTimestampFilter => {
                 let (message, data) = match GossipTimestampFilterMessage::from_bytes(bytes) {
