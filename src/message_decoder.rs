@@ -1,6 +1,6 @@
 use crate::messages::{
     ChannelAnnouncementMessage, GossipTimestampFilterMessage, InitMessage, MessageType,
-    PingMessage, PongMessage, UnknownMessage,
+    PingMessage, PongMessage, QueryChannelRangeMessage, UnknownMessage,
 };
 use crate::wire::{BytesSerializable, MessageTypeWire};
 
@@ -10,12 +10,14 @@ pub enum MessageDecoderError {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum MessageContainer {
     Init(InitMessage),
     Ping(PingMessage),
     Pong(PongMessage),
     ChannelAnnouncement(ChannelAnnouncementMessage),
     GossipTimestampFilter(GossipTimestampFilterMessage),
+    QueryChannelRange(QueryChannelRangeMessage),
     Unknown(UnknownMessage),
 }
 
@@ -27,6 +29,7 @@ impl MessageContainer {
             MessageContainer::Pong(message) => message.to_bytes(),
             MessageContainer::ChannelAnnouncement(message) => message.to_bytes(),
             MessageContainer::GossipTimestampFilter(message) => message.to_bytes(),
+            MessageContainer::QueryChannelRange(message) => message.to_bytes(),
             MessageContainer::Unknown(message) => message.to_bytes(),
         }
     }

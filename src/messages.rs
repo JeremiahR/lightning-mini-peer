@@ -2,13 +2,12 @@ use crate::wire::{
     BytesSerializable, ChainHashElement, FeaturesStruct, GlobalFeaturesStruct, IgnoredStruct,
     LocalFeaturesStruct, MessageTypeWire, NumPongBytesStruct, PointElement, SerializationError,
     ShortChannelIDElement, SignatureElement, TLVStreamElement, TimestampElement,
-    TimestampRangeElement, U32IntWire, Wire32Bytes,
+    TimestampRangeElement, U32IntWire,
 };
 
 use num_enum::TryFromPrimitive;
 use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, IntoStaticStr};
-use tokio::time::timeout;
 
 #[derive(Debug, EnumIter, Copy, Clone, Eq, PartialEq, Hash, IntoStaticStr, TryFromPrimitive)]
 #[repr(u16)]
