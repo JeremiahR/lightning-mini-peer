@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::message_types::MessageTypeEnum;
+use crate::message_types::MessageType;
 use crate::serialization::{
     ByteElement, ChainHashElement, MessageTypeStruct, NodeAliasElement, PointElement,
     RGBColorElement, Serializable, SerializedKind, SerializedTypeContainer, ShortChannelIDElement,
@@ -92,7 +92,7 @@ impl LightningType {
 
 #[derive(Debug)]
 pub struct WireFormatMessage {
-    message_type: MessageTypeEnum,
+    message_type: MessageType,
     elements: HashMap<LightningType, SerializedTypeContainer>,
     element_order: Vec<LightningType>,
 }
@@ -100,22 +100,22 @@ pub struct WireFormatMessage {
 impl WireFormatMessage {
     pub fn get_structure(
         msg_type: u16,
-    ) -> Result<(MessageTypeEnum, Vec<LightningType>), MessageDecodeError> {
-        let type_enum = MessageTypeEnum::try_from(msg_type).unwrap();
+    ) -> Result<(MessageType, Vec<LightningType>), MessageDecodeError> {
+        let type_enum = MessageType::try_from(msg_type).unwrap();
         let wire_elements: Vec<LightningType> = match type_enum {
-            MessageTypeEnum::Init => vec![
+            MessageType::Init => vec![
                 LightningType::MessageType,
                 LightningType::GlobalFeatures,
                 LightningType::LocalFeatures,
                 LightningType::TLVStream,
             ],
-            MessageTypeEnum::Ping => vec![
+            MessageType::Ping => vec![
                 LightningType::MessageType,
                 LightningType::NumPongBytes,
                 LightningType::Ignored,
             ],
-            MessageTypeEnum::Pong => vec![LightningType::MessageType, LightningType::Ignored],
-            MessageTypeEnum::ChannelAnnouncement => vec![
+            MessageType::Pong => vec![LightningType::MessageType, LightningType::Ignored],
+            MessageType::ChannelAnnouncement => vec![
                 LightningType::NodeSignature1,
                 LightningType::NodeSignature2,
                 LightningType::BitcoinSignature1,
@@ -128,7 +128,7 @@ impl WireFormatMessage {
                 LightningType::BitcoinKey1,
                 LightningType::BitcoinKey2,
             ],
-            MessageTypeEnum::NodeAnnouncement => vec![
+            MessageType::NodeAnnouncement => vec![
                 LightningType::Signature,
                 LightningType::Features,
                 LightningType::Timestamp,
@@ -137,21 +137,21 @@ impl WireFormatMessage {
                 LightningType::NodeAlias,
                 LightningType::Addresses,
             ],
-            MessageTypeEnum::QueryShortChannelIds => vec![
+            MessageType::QueryShortChannelIds => vec![
                 LightningType::ChainHash,
                 LightningType::EncodedShortIds,
                 LightningType::QuerySortChannelIDsTLVS,
             ],
-            MessageTypeEnum::ReplyShortChannelIdsEnd => {
+            MessageType::ReplyShortChannelIdsEnd => {
                 vec![LightningType::ChainHash, LightningType::FullInformation]
             }
-            MessageTypeEnum::QueryChannelRange => vec![
+            MessageType::QueryChannelRange => vec![
                 LightningType::ChainHash,
                 LightningType::FirstBlockNum,
                 LightningType::NumberOfBlocks,
                 LightningType::QueryChannelRangeTLVs,
             ],
-            MessageTypeEnum::ReplyChannelRange => vec![
+            MessageType::ReplyChannelRange => vec![
                 LightningType::ChainHash,
                 LightningType::FirstBlockNum,
                 LightningType::NumberOfBlocks,
@@ -159,7 +159,7 @@ impl WireFormatMessage {
                 LightningType::EncodedShortIds,
                 LightningType::ReplyChannelRangeTLVs,
             ],
-            MessageTypeEnum::GossipTimestampFilter => vec![
+            MessageType::GossipTimestampFilter => vec![
                 LightningType::ChainHash,
                 LightningType::FirstTimestamp,
                 LightningType::TimestampRange,
@@ -257,7 +257,7 @@ mod tests {
     fn test_decode_init_message() {
         let initial_bytes = hex::decode("001000021100000708a0880a8a59a1012006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f2d7ef99482067a1b72fe9e411d37be8c").unwrap();
         let (msg, remainder) = WireFormatMessage::from_bytes(&initial_bytes).unwrap();
-        assert_eq!(msg.message_type, MessageTypeEnum::Init);
+        assert_eq!(msg.message_type, MessageType::Init);
         // check that "type" is contained in msg.elements
         assert!(msg.elements.contains_key(&LightningType::MessageType));
         assert!(msg.elements.contains_key(&LightningType::GlobalFeatures));

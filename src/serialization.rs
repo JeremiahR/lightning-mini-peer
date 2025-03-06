@@ -1,4 +1,4 @@
-use crate::message_types::MessageTypeEnum;
+use crate::message_types::MessageType;
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 
@@ -21,7 +21,7 @@ impl MessageTypeStruct {
     // it's lazy to do this every time, but it can be optimized later
     fn enum_name_lookup() -> HashMap<i32, String> {
         let mut map = HashMap::new();
-        for variant in MessageTypeEnum::iter() {
+        for variant in MessageType::iter() {
             let name: &str = variant.clone().into();
             let name = name.to_lowercase();
             map.insert(variant.clone() as i32, name);

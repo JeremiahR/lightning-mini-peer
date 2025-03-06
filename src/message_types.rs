@@ -4,7 +4,7 @@ use strum_macros::{EnumIter, IntoStaticStr};
 
 #[derive(Debug, EnumIter, Clone, Eq, PartialEq, Hash, IntoStaticStr, TryFromPrimitive)]
 #[repr(u16)]
-pub enum MessageTypeEnum {
+pub enum MessageType {
     Unknown = 0,
     Warning = 1,
     Stfu = 2,
