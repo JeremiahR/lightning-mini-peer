@@ -2,19 +2,18 @@ use std::collections::HashMap;
 
 use crate::message_types::MessageType;
 use crate::serialization::{
-    ByteElement, ChainHashElement, MessageTypeStruct, NodeAliasElement, PointElement,
-    RGBColorElement, Serializable, SerializedKind, SerializedTypeContainer, ShortChannelIDElement,
-    SignatureElement, TLVStreamElement, U16SerializedElement, U16SizedBytesStruct,
-    U32SerializedElement,
+    ByteElement, BytesSerializable, ChainHashElement, MessageTypeStruct, NodeAliasElement,
+    PointElement, RGBColorElement, SerializationError, SerializedKind, SerializedTypeContainer,
+    ShortChannelIDElement, SignatureElement, TLVStreamElement, U16SerializedElement,
+    U16SizedBytesStruct, U32SerializedElement,
 };
 
-#[derive(Debug)]
-pub enum MessageDecodeError {
+enum MessageDecodeError {
     Error,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum LightningType {
+pub(crate) enum LightningType {
     MessageType,
     GlobalFeatures,
     LocalFeatures,
@@ -98,9 +97,7 @@ pub struct WireFormatMessage {
 }
 
 impl WireFormatMessage {
-    pub fn get_structure(
-        msg_type: u16,
-    ) -> Result<(MessageType, Vec<LightningType>), MessageDecodeError> {
+    pub fn get_structure(msg_type: u16) -> (MessageType, Vec<LightningType>) {
         let type_enum = MessageType::try_from(msg_type).unwrap();
         let wire_elements: Vec<LightningType> = match type_enum {
             MessageType::Init => vec![
@@ -166,12 +163,12 @@ impl WireFormatMessage {
             ],
             _ => vec![],
         };
-        Ok((type_enum, wire_elements))
+        (type_enum, wire_elements)
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<(WireFormatMessage, &[u8]), MessageDecodeError> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<(WireFormatMessage, &[u8]), SerializationError> {
         let (m, _) = MessageTypeStruct::from_bytes(bytes).unwrap();
-        let (message_type, wire_elements) = WireFormatMessage::get_structure(m.id).unwrap();
+        let (message_type, wire_elements) = WireFormatMessage::get_structure(m.id);
         let mut elements = HashMap::new();
         let mut element_order = Vec::new();
         let mut bytes = bytes;

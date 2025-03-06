@@ -7,6 +7,7 @@ use crate::node_connection::NodeConnection;
 use std::env;
 
 mod message_types;
+mod messages;
 mod node;
 mod node_connection;
 mod serialization;

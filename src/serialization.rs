@@ -2,12 +2,13 @@ use crate::message_types::MessageType;
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 
-enum SerializationError {
-    Error,
+#[derive(Debug, Clone)]
+pub enum SerializationError {
+    TooFewBytes,
 }
 
-pub trait Serializable: Sized {
-    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String>;
+pub trait BytesSerializable: Sized {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError>;
     fn to_bytes(&self) -> Vec<u8>;
 }
 
@@ -30,10 +31,10 @@ impl MessageTypeStruct {
     }
 }
 
-impl Serializable for MessageTypeStruct {
-    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+impl BytesSerializable for MessageTypeStruct {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 2 {
-            return Err("Not enough data to read a u16".to_string());
+            return Err(SerializationError::TooFewBytes);
         }
         let id = u16::from_be_bytes([data[0], data[1]]);
         let lookup = Self::enum_name_lookup();
@@ -55,10 +56,10 @@ pub struct U16SizedBytesStruct {
     data: Vec<u8>,
 }
 
-impl Serializable for U16SizedBytesStruct {
-    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+impl BytesSerializable for U16SizedBytesStruct {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 2 {
-            return Err("Not enough data to read a u16".to_string());
+            return Err(SerializationError::TooFewBytes);
         }
         let num_bytes = u16::from_be_bytes([data[0], data[1]]);
         let our_data = data[2..2 + num_bytes as usize].to_vec();
@@ -83,10 +84,10 @@ pub struct ByteElement {
     value: u8,
 }
 
-impl Serializable for ByteElement {
-    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+impl BytesSerializable for ByteElement {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 1 {
-            return Err("Not enough data to read a byte".to_string());
+            return Err(SerializationError::TooFewBytes);
         }
         Ok((ByteElement { value: data[0] }, &data[1..]))
     }
@@ -101,10 +102,10 @@ pub struct RGBColorElement {
     bytes: [u8; 3],
 }
 
-impl Serializable for RGBColorElement {
-    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
-        if data.len() < 1 {
-            return Err("Not enough data to read a byte".to_string());
+impl BytesSerializable for RGBColorElement {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        if data.len() < 3 {
+            return Err(SerializationError::TooFewBytes);
         }
         Ok((
             RGBColorElement {
@@ -124,10 +125,10 @@ pub struct U16SerializedElement {
     value: u16,
 }
 
-impl Serializable for U16SerializedElement {
-    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+impl BytesSerializable for U16SerializedElement {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 2 {
-            return Err("Not enough data to read a u16".to_string());
+            return Err(SerializationError::TooFewBytes);
         }
         let value = u16::from_be_bytes([data[0], data[1]]);
         Ok((U16SerializedElement { value }, &data[2..]))
@@ -143,10 +144,10 @@ pub struct U32SerializedElement {
     value: u32,
 }
 
-impl Serializable for U32SerializedElement {
-    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+impl BytesSerializable for U32SerializedElement {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 4 {
-            return Err("Not enough data to read a u16".to_string());
+            return Err(SerializationError::TooFewBytes);
         }
         let value = u32::from_be_bytes([data[0], data[1], data[2], data[3]]);
         Ok((U32SerializedElement { value }, &data[4..]))
@@ -162,10 +163,10 @@ pub struct Bytes64Element {
     data: [u8; 64],
 }
 
-impl Serializable for Bytes64Element {
-    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+impl BytesSerializable for Bytes64Element {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 64 {
-            return Err("Not enough data to read a signature".to_string());
+            return Err(SerializationError::TooFewBytes);
         }
         let mut bytes = [0u8; 64];
         bytes.copy_from_slice(&data[..64]);
@@ -184,10 +185,10 @@ pub struct Bytes32Element {
     data: [u8; 32],
 }
 
-impl Serializable for Bytes32Element {
-    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+impl BytesSerializable for Bytes32Element {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 32 {
-            return Err("Not enough data to read a signature".to_string());
+            return Err(SerializationError::TooFewBytes);
         }
         let mut bytes = [0u8; 32];
         bytes.copy_from_slice(&data[..32]);
@@ -207,10 +208,10 @@ pub struct Bytes33Element {
     data: [u8; 33],
 }
 
-impl Serializable for Bytes33Element {
-    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+impl BytesSerializable for Bytes33Element {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 33 {
-            return Err("Not enough data to read a signature".to_string());
+            return Err(SerializationError::TooFewBytes);
         }
         let mut bytes = [0u8; 33];
         bytes.copy_from_slice(&data[..33]);
@@ -229,10 +230,10 @@ pub struct Bytes8Element {
     data: [u8; 8],
 }
 
-impl Serializable for Bytes8Element {
-    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+impl BytesSerializable for Bytes8Element {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 8 {
-            return Err("Not enough data to read a signature".to_string());
+            return Err(SerializationError::TooFewBytes);
         }
         let mut bytes = [0u8; 8];
         bytes.copy_from_slice(&data[..8]);
@@ -251,8 +252,8 @@ pub struct RemainderElement {
     data: Vec<u8>,
 }
 
-impl Serializable for RemainderElement {
-    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), String> {
+impl BytesSerializable for RemainderElement {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         Ok((
             RemainderElement {
                 data: data.to_vec(),
