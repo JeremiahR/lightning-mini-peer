@@ -15,6 +15,10 @@ Run `cargo run <nodeid>`
 
 See below for the features that are implemented.
 
+# Implementation Notes
+
+In the long term it would be nice to run this directly on top of [snow](https://github.com/mcginty/snow), which just requires implementing the secp256k1 curve. In the short term this uses a minimal, hacked version of [rust-lightning](https://github.com/lightningdevkit/rust-lightning) with a publicly exposed peer-channel-encryptor.
+
 # Todos
 
 - [DONE] De/serialize pings, pongs, inits, and basic message types.

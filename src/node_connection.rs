@@ -1,12 +1,10 @@
 use crate::message_decoder::MessageContainer;
 use crate::message_decoder::MessageDecoder;
-use crate::vendor::KeysManager;
+use crate::vendor::{KeysManager, LightningError, MessageBuf, NextNoiseStep};
 use bitcoin::secp256k1::PublicKey as BitcoinPublicKey;
 use bitcoin::secp256k1::Secp256k1;
 use bitcoin::secp256k1::SecretKey;
 use bitcoin::secp256k1::SignOnly;
-use lightning::ln::msgs::LightningError;
-use lightning::ln::peer_channel_encryptor::{MessageBuf, NextNoiseStep};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 

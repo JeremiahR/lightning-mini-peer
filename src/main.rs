@@ -1,4 +1,5 @@
 use message_decoder::MessageContainer;
+use message_handler::MessageHandler;
 use messages::InitMessage;
 use messages::PingMessage;
 use wire::BytesSerializable;
@@ -10,6 +11,7 @@ use crate::node_connection::NodeConnection;
 use std::env;
 
 mod message_decoder;
+mod message_handler;
 mod messages;
 mod node;
 mod node_connection;
@@ -62,10 +64,11 @@ async fn main() {
         let wrapped = MessageContainer::Ping(ping);
         node_conn.encrypt_and_send_message(&wrapped).await.unwrap();
     }
+    let message_handler = MessageHandler::new();
     loop {
         match node_conn.read_next_message().await {
-            Ok(res) => {
-                println!("Received message: {:?}", res);
+            Ok(msg) => {
+                message_handler.handle_inbound(msg).await.unwrap();
             }
             Err(err) => {
                 println!("Failed to read: {:?}", err);
