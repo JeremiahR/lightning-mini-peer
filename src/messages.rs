@@ -1,6 +1,7 @@
 use crate::wire::{
-    BytesSerializable, GlobalFeaturesStruct, IgnoredStruct, LocalFeaturesStruct, MessageTypeWire,
-    NumPongBytesStruct, SerializationError, TLVStreamElement,
+    BytesSerializable, ChainHashElement, FeaturesStruct, GlobalFeaturesStruct, IgnoredStruct,
+    LocalFeaturesStruct, MessageTypeWire, NodeAliasElement, NumPongBytesStruct, PointElement,
+    SerializationError, ShortChannelIDElement, SignatureElement, TLVStreamElement,
 };
 
 use num_enum::TryFromPrimitive;
@@ -66,9 +67,6 @@ impl MessageType {
         *self as u16
     }
 }
-
-// struct types
-pub type Signature = [u8; 64];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct InitMessage {
@@ -160,6 +158,64 @@ struct ChannelAnnouncementMessage {
     node_signature_2: [u8; 64],
     bitcoin_signature_1: [u8; 64],
     bitcoin_signature_2: [u8; 64],
+    features: Vec<u8>,
+    chain_hash: [u8; 32],
+    short_channel_id: [u8; 8],
+    node_id_1: [u8; 33],
+    node_id_2: [u8; 33],
+    bitcoin_node_id_1: [u8; 33],
+    bitcoin_node_id_2: [u8; 33],
+}
+
+impl BytesSerializable for ChannelAnnouncementMessage {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        let (_message, data) = MessageTypeWire::from_bytes(data)?;
+        let (node_signature_1, data) = SignatureElement::from_bytes(data)?;
+        let (node_signature_2, data) = SignatureElement::from_bytes(data)?;
+        let (bitcoin_signature_1, data) = SignatureElement::from_bytes(data)?;
+        let (bitcoin_signature_2, data) = SignatureElement::from_bytes(data)?;
+        let (features, data) = FeaturesStruct::from_bytes(data)?;
+        let (chain_hash, data) = ChainHashElement::from_bytes(data)?;
+        let (short_channel_id, data) = ShortChannelIDElement::from_bytes(data)?;
+        let (node_id_1, data) = PointElement::from_bytes(data)?;
+        let (node_id_2, data) = PointElement::from_bytes(data)?;
+        let (bitcoin_node_id_1, data) = PointElement::from_bytes(data)?;
+        let (bitcoin_node_id_2, data) = PointElement::from_bytes(data)?;
+
+        Ok((
+            ChannelAnnouncementMessage {
+                node_signature_1: node_signature_1.data,
+                node_signature_2: node_signature_2.data,
+                bitcoin_signature_1: bitcoin_signature_1.data,
+                bitcoin_signature_2: bitcoin_signature_2.data,
+                features: features.data,
+                chain_hash: chain_hash.data,
+                short_channel_id: short_channel_id.data,
+                node_id_1: node_id_1.data,
+                node_id_2: node_id_2.data,
+                bitcoin_node_id_1: bitcoin_node_id_1.data,
+                bitcoin_node_id_2: bitcoin_node_id_2.data,
+            },
+            data,
+        ))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend(MessageTypeWire::new(MessageType::ChannelAnnouncement).to_bytes());
+        bytes.extend(SignatureElement::new(self.node_signature_1).to_bytes());
+        bytes.extend(SignatureElement::new(self.node_signature_2).to_bytes());
+        bytes.extend(SignatureElement::new(self.bitcoin_signature_1).to_bytes());
+        bytes.extend(SignatureElement::new(self.bitcoin_signature_2).to_bytes());
+        bytes.extend(FeaturesStruct::new(self.features.clone()).to_bytes());
+        bytes.extend(ChainHashElement::new(self.chain_hash).to_bytes());
+        bytes.extend(ShortChannelIDElement::new(self.short_channel_id).to_bytes());
+        bytes.extend(PointElement::new(self.node_id_1).to_bytes());
+        bytes.extend(PointElement::new(self.node_id_2).to_bytes());
+        bytes.extend(PointElement::new(self.bitcoin_node_id_1).to_bytes());
+        bytes.extend(PointElement::new(self.bitcoin_node_id_2).to_bytes());
+        bytes
+    }
 }
 
 #[test]

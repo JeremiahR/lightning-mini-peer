@@ -160,7 +160,13 @@ impl BytesSerializable for U32SerializedElement {
 
 #[derive(Debug)]
 pub struct Wire64Bytes {
-    data: [u8; 64],
+    pub data: [u8; 64],
+}
+
+impl Wire64Bytes {
+    pub fn new(data: [u8; 64]) -> Self {
+        Wire64Bytes { data }
+    }
 }
 
 impl BytesSerializable for Wire64Bytes {
@@ -180,7 +186,13 @@ impl BytesSerializable for Wire64Bytes {
 
 #[derive(Debug)]
 pub struct Wire32Bytes {
-    data: [u8; 32],
+    pub data: [u8; 32],
+}
+
+impl Wire32Bytes {
+    pub fn new(data: [u8; 32]) -> Self {
+        Wire32Bytes { data }
+    }
 }
 
 impl BytesSerializable for Wire32Bytes {
@@ -200,7 +212,13 @@ impl BytesSerializable for Wire32Bytes {
 
 #[derive(Debug)]
 pub struct Wire33Bytes {
-    data: [u8; 33],
+    pub data: [u8; 33],
+}
+
+impl Wire33Bytes {
+    pub fn new(data: [u8; 33]) -> Self {
+        Wire33Bytes { data }
+    }
 }
 
 impl BytesSerializable for Wire33Bytes {
@@ -220,7 +238,13 @@ impl BytesSerializable for Wire33Bytes {
 
 #[derive(Debug)]
 pub struct Bytes8Element {
-    data: [u8; 8],
+    pub data: [u8; 8],
+}
+
+impl Bytes8Element {
+    pub fn new(data: [u8; 8]) -> Self {
+        Bytes8Element { data }
+    }
 }
 
 impl BytesSerializable for Bytes8Element {
@@ -268,6 +292,7 @@ pub type IgnoredStruct = RemainderTypeWire;
 pub type NumPongBytesStruct = U16IntWire;
 pub type GlobalFeaturesStruct = U16SizedBytesWire;
 pub type LocalFeaturesStruct = U16SizedBytesWire;
+pub type FeaturesStruct = U16SizedBytesWire;
 pub type TLVStreamElement = RemainderTypeWire;
 pub type ShortChannelIDElement = Bytes8Element;
 pub type SignatureElement = Wire64Bytes;
