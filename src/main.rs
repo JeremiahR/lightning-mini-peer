@@ -5,12 +5,12 @@ use crate::util::parse_node;
 
 use std::env;
 
-mod base_types;
 mod message_decoder;
 mod messages;
 mod node;
 mod node_connection;
 mod peer;
+mod serialization;
 mod util;
 mod vendor;
 

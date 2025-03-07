@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use bitcoin::secp256k1::SecretKey;
 
 use crate::{
-    base_types::BytesSerializable,
     message_decoder::MessageContainer,
     messages::{InitMessage, PongMessage},
     node::Node,
     node_connection::{NodeConnection, NodeConnectionError},
+    serialization::BytesSerializable,
 };
 
 #[allow(dead_code)]

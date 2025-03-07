@@ -1,4 +1,4 @@
-use crate::base_types::{
+use crate::serialization::{
     Bytes3Element, BytesSerializable, ChainHashElement, FeaturesStruct, GlobalFeaturesStruct,
     IgnoredStruct, LocalFeaturesStruct, MessageTypeWire, NodeAddressesWire, NumPongBytesStruct,
     PointElementWire, SerializationError, ShortChannelIDElement, SignatureElement, SingleByteWire,

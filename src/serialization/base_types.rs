@@ -1,15 +1,5 @@
 use crate::messages::MessageType;
-
-#[derive(Debug, Clone)]
-pub enum SerializationError {
-    TooFewBytes,
-    InvalidValue,
-}
-
-pub trait BytesSerializable: Sized {
-    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError>;
-    fn to_bytes(&self) -> Vec<u8>;
-}
+use crate::serialization::{BytesSerializable, SerializationError};
 
 #[derive(Debug, Clone)]
 pub struct MessageTypeWire {
