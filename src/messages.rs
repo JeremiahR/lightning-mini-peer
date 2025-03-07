@@ -89,9 +89,9 @@ impl BytesSerializable for InitMessage {
         let (tlv, data) = TLVStreamElement::from_bytes(data)?;
         Ok((
             InitMessage {
-                global_features: global_features.data,
-                local_features: local_features.data,
-                tlv: tlv.data,
+                global_features: global_features.value,
+                local_features: local_features.value,
+                tlv: tlv.value,
             },
             data,
         ))
@@ -121,7 +121,7 @@ impl BytesSerializable for PingMessage {
         Ok((
             PingMessage {
                 num_pong_bytes: num_pong_bytes.value,
-                ignored: ignored.data,
+                ignored: ignored.value,
             },
             data,
         ))
@@ -155,7 +155,7 @@ impl BytesSerializable for PongMessage {
         let (ignored, data) = IgnoredStruct::from_bytes(data)?;
         Ok((
             PongMessage {
-                ignored: ignored.data,
+                ignored: ignored.value,
             },
             data,
         ))
@@ -201,17 +201,17 @@ impl BytesSerializable for ChannelAnnouncementMessage {
 
         Ok((
             ChannelAnnouncementMessage {
-                node_signature_1: node_signature_1.data,
-                node_signature_2: node_signature_2.data,
-                bitcoin_signature_1: bitcoin_signature_1.data,
-                bitcoin_signature_2: bitcoin_signature_2.data,
-                features: features.data,
-                chain_hash: chain_hash.data,
-                short_channel_id: short_channel_id.data,
-                node_id_1: node_id_1.data,
-                node_id_2: node_id_2.data,
-                bitcoin_node_id_1: bitcoin_node_id_1.data,
-                bitcoin_node_id_2: bitcoin_node_id_2.data,
+                node_signature_1: node_signature_1.value,
+                node_signature_2: node_signature_2.value,
+                bitcoin_signature_1: bitcoin_signature_1.value,
+                bitcoin_signature_2: bitcoin_signature_2.value,
+                features: features.value,
+                chain_hash: chain_hash.value,
+                short_channel_id: short_channel_id.value,
+                node_id_1: node_id_1.value,
+                node_id_2: node_id_2.value,
+                bitcoin_node_id_1: bitcoin_node_id_1.value,
+                bitcoin_node_id_2: bitcoin_node_id_2.value,
             },
             data,
         ))
@@ -251,7 +251,7 @@ impl BytesSerializable for GossipTimestampFilterMessage {
 
         Ok((
             GossipTimestampFilterMessage {
-                chain_hash: chain_hash.data,
+                chain_hash: chain_hash.value,
                 first_timestamp: first_timestamp.value,
                 timestamp_range: timestamp_range.value,
             },
@@ -262,24 +262,9 @@ impl BytesSerializable for GossipTimestampFilterMessage {
     fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.extend(MessageTypeWire::new(MessageType::GossipTimestampFilter).to_bytes());
-        bytes.extend(
-            ChainHashElement {
-                data: self.chain_hash,
-            }
-            .to_bytes(),
-        );
-        bytes.extend(
-            TimestampElement {
-                value: self.first_timestamp,
-            }
-            .to_bytes(),
-        );
-        bytes.extend(
-            TimestampRangeElement {
-                value: self.timestamp_range,
-            }
-            .to_bytes(),
-        );
+        bytes.extend(ChainHashElement::new(self.chain_hash).to_bytes());
+        bytes.extend(TimestampElement::new(self.first_timestamp).to_bytes());
+        bytes.extend(TimestampRangeElement::new(self.timestamp_range).to_bytes());
         bytes
     }
 }
@@ -302,10 +287,10 @@ impl BytesSerializable for QueryChannelRangeMessage {
 
         Ok((
             QueryChannelRangeMessage {
-                chain_hash: chain_hash.data,
+                chain_hash: chain_hash.value,
                 first_blocknum: first_blocknum.value,
                 number_of_blocks: number_of_blocks.value,
-                query_range_tlvs: query_range_tlvs.data,
+                query_range_tlvs: query_range_tlvs.value,
             },
             data,
         ))
@@ -314,30 +299,10 @@ impl BytesSerializable for QueryChannelRangeMessage {
     fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.extend(MessageTypeWire::new(MessageType::QueryChannelRange).to_bytes());
-        bytes.extend(
-            ChainHashElement {
-                data: self.chain_hash,
-            }
-            .to_bytes(),
-        );
-        bytes.extend(
-            U32IntWire {
-                value: self.first_blocknum,
-            }
-            .to_bytes(),
-        );
-        bytes.extend(
-            U32IntWire {
-                value: self.number_of_blocks,
-            }
-            .to_bytes(),
-        );
-        bytes.extend(
-            TLVStreamElement {
-                data: self.query_range_tlvs.clone(),
-            }
-            .to_bytes(),
-        );
+        bytes.extend(ChainHashElement::new(self.chain_hash).to_bytes());
+        bytes.extend(U32IntWire::new(self.first_blocknum).to_bytes());
+        bytes.extend(U32IntWire::new(self.number_of_blocks).to_bytes());
+        bytes.extend(TLVStreamElement::new(self.query_range_tlvs.clone()).to_bytes());
         bytes
     }
 }
@@ -364,12 +329,12 @@ impl BytesSerializable for ReplyChannelRangeMessage {
 
         Ok((
             ReplyChannelRangeMessage {
-                chain_hash: chain_hash.data,
+                chain_hash: chain_hash.value,
                 first_blocknum: first_blocknum.value,
                 number_of_blocks: number_of_blocks.value,
                 sync_complete: sync_complete.value,
-                encoded_short_ids: encoded_short_ids.data,
-                reply_channel_range_tlvs: reply_channel_range_tlvs.data,
+                encoded_short_ids: encoded_short_ids.value,
+                reply_channel_range_tlvs: reply_channel_range_tlvs.value,
             },
             data,
         ))
@@ -378,37 +343,12 @@ impl BytesSerializable for ReplyChannelRangeMessage {
     fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.extend(MessageTypeWire::new(MessageType::ReplyChannelRange).to_bytes());
-        bytes.extend(
-            ChainHashElement {
-                data: self.chain_hash,
-            }
-            .to_bytes(),
-        );
-        bytes.extend(
-            U32IntWire {
-                value: self.first_blocknum,
-            }
-            .to_bytes(),
-        );
-        bytes.extend(
-            U32IntWire {
-                value: self.number_of_blocks,
-            }
-            .to_bytes(),
-        );
-        bytes.extend(
-            SingleByteWire {
-                value: self.sync_complete,
-            }
-            .to_bytes(),
-        );
+        bytes.extend(ChainHashElement::new(self.chain_hash).to_bytes());
+        bytes.extend(U32IntWire::new(self.first_blocknum).to_bytes());
+        bytes.extend(U32IntWire::new(self.number_of_blocks).to_bytes());
+        bytes.extend(SingleByteWire::new(self.sync_complete).to_bytes());
         bytes.extend(U16SizedBytesWire::new(self.encoded_short_ids.clone()).to_bytes());
-        bytes.extend(
-            TLVStreamElement {
-                data: self.reply_channel_range_tlvs.clone(),
-            }
-            .to_bytes(),
-        );
+        bytes.extend(TLVStreamElement::new(self.reply_channel_range_tlvs.clone()).to_bytes());
         bytes
     }
 }
@@ -437,13 +377,13 @@ impl BytesSerializable for NodeAnnouncementMessage {
 
         Ok((
             NodeAnnouncementMessage {
-                signature: signature.data,
-                features: features.data,
+                signature: signature.value,
+                features: features.value,
                 timestamp: timestamp.value,
-                node_id: node_id.data,
-                rgb_color: rgb_color.data,
-                alias: alias.data,
-                addresses: addresses.data,
+                node_id: node_id.value,
+                rgb_color: rgb_color.value,
+                alias: alias.value,
+                addresses: addresses.value,
             },
             data,
         ))
@@ -454,12 +394,7 @@ impl BytesSerializable for NodeAnnouncementMessage {
         bytes.extend(MessageTypeWire::new(MessageType::NodeAnnouncement).to_bytes());
         bytes.extend(SignatureElement::new(self.signature).to_bytes());
         bytes.extend(U16SizedBytesWire::new(self.features.clone()).to_bytes());
-        bytes.extend(
-            U32IntWire {
-                value: self.timestamp,
-            }
-            .to_bytes(),
-        );
+        bytes.extend(U32IntWire::new(self.timestamp).to_bytes());
         bytes.extend(PointElementWire::new(self.node_id).to_bytes());
         bytes.extend(Bytes3Element::new(self.rgb_color).to_bytes());
         bytes.extend(Wire32Bytes::new(self.alias).to_bytes());

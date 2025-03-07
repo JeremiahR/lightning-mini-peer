@@ -38,14 +38,14 @@ impl BytesSerializable for MessageTypeWire {
 #[derive(Debug)]
 pub struct U16SizedBytesWire {
     num_bytes: u16,
-    pub data: Vec<u8>,
+    pub value: Vec<u8>,
 }
 
 impl U16SizedBytesWire {
     pub fn new(data: Vec<u8>) -> Self {
         U16SizedBytesWire {
             num_bytes: data.len() as u16,
-            data,
+            value: data,
         }
     }
 }
@@ -60,7 +60,7 @@ impl BytesSerializable for U16SizedBytesWire {
         Ok((
             U16SizedBytesWire {
                 num_bytes,
-                data: our_data,
+                value: our_data,
             },
             &data[2 as usize + num_bytes as usize..],
         ))
@@ -68,7 +68,7 @@ impl BytesSerializable for U16SizedBytesWire {
 
     fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = self.num_bytes.to_be_bytes().to_vec();
-        bytes.extend(self.data.clone());
+        bytes.extend(self.value.clone());
         bytes
     }
 }
@@ -76,6 +76,12 @@ impl BytesSerializable for U16SizedBytesWire {
 #[derive(Debug)]
 pub struct SingleByteWire {
     pub value: u8,
+}
+
+impl SingleByteWire {
+    pub fn new(value: u8) -> Self {
+        SingleByteWire { value }
+    }
 }
 
 impl BytesSerializable for SingleByteWire {
@@ -144,6 +150,12 @@ pub struct U32IntWire {
     pub value: u32,
 }
 
+impl U32IntWire {
+    pub fn new(value: u32) -> Self {
+        U32IntWire { value }
+    }
+}
+
 impl BytesSerializable for U32IntWire {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 4 {
@@ -160,12 +172,12 @@ impl BytesSerializable for U32IntWire {
 
 #[derive(Debug)]
 pub struct Wire64Bytes {
-    pub data: [u8; 64],
+    pub value: [u8; 64],
 }
 
 impl Wire64Bytes {
     pub fn new(data: [u8; 64]) -> Self {
-        Wire64Bytes { data }
+        Wire64Bytes { value: data }
     }
 }
 
@@ -176,22 +188,22 @@ impl BytesSerializable for Wire64Bytes {
         }
         let mut bytes = [0u8; 64];
         bytes.copy_from_slice(&data[..64]);
-        Ok((Wire64Bytes { data: bytes }, &data[64..]))
+        Ok((Wire64Bytes { value: bytes }, &data[64..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
-        self.data.to_vec()
+        self.value.to_vec()
     }
 }
 
 #[derive(Debug)]
 pub struct Wire32Bytes {
-    pub data: [u8; 32],
+    pub value: [u8; 32],
 }
 
 impl Wire32Bytes {
     pub fn new(data: [u8; 32]) -> Self {
-        Wire32Bytes { data }
+        Wire32Bytes { value: data }
     }
 }
 
@@ -202,22 +214,22 @@ impl BytesSerializable for Wire32Bytes {
         }
         let mut bytes = [0u8; 32];
         bytes.copy_from_slice(&data[..32]);
-        Ok((Wire32Bytes { data: bytes }, &data[32..]))
+        Ok((Wire32Bytes { value: bytes }, &data[32..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
-        self.data.to_vec()
+        self.value.to_vec()
     }
 }
 
 #[derive(Debug)]
 pub struct Wire33Bytes {
-    pub data: [u8; 33],
+    pub value: [u8; 33],
 }
 
 impl Wire33Bytes {
     pub fn new(data: [u8; 33]) -> Self {
-        Wire33Bytes { data }
+        Wire33Bytes { value: data }
     }
 }
 
@@ -228,22 +240,22 @@ impl BytesSerializable for Wire33Bytes {
         }
         let mut bytes = [0u8; 33];
         bytes.copy_from_slice(&data[..33]);
-        Ok((Wire33Bytes { data: bytes }, &data[33..]))
+        Ok((Wire33Bytes { value: bytes }, &data[33..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
-        self.data.to_vec()
+        self.value.to_vec()
     }
 }
 
 #[derive(Debug)]
 pub struct Bytes8Element {
-    pub data: [u8; 8],
+    pub value: [u8; 8],
 }
 
 impl Bytes8Element {
     pub fn new(data: [u8; 8]) -> Self {
-        Bytes8Element { data }
+        Bytes8Element { value: data }
     }
 }
 
@@ -254,22 +266,22 @@ impl BytesSerializable for Bytes8Element {
         }
         let mut bytes = [0u8; 8];
         bytes.copy_from_slice(&data[..8]);
-        Ok((Bytes8Element { data: bytes }, &data[8..]))
+        Ok((Bytes8Element { value: bytes }, &data[8..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
-        self.data.to_vec()
+        self.value.to_vec()
     }
 }
 
 #[derive(Debug)]
 pub struct Bytes3Element {
-    pub data: [u8; 3],
+    pub value: [u8; 3],
 }
 
 impl Bytes3Element {
     pub fn new(data: [u8; 3]) -> Self {
-        Bytes3Element { data }
+        Bytes3Element { value: data }
     }
 }
 
@@ -280,22 +292,22 @@ impl BytesSerializable for Bytes3Element {
         }
         let mut bytes = [0u8; 3];
         bytes.copy_from_slice(&data[..3]);
-        Ok((Bytes3Element { data: bytes }, &data[3..]))
+        Ok((Bytes3Element { value: bytes }, &data[3..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
-        self.data.to_vec()
+        self.value.to_vec()
     }
 }
 
 #[derive(Debug)]
 pub struct RemainderTypeWire {
-    pub data: Vec<u8>,
+    pub value: Vec<u8>,
 }
 
 impl RemainderTypeWire {
     pub fn new(data: Vec<u8>) -> Self {
-        RemainderTypeWire { data }
+        RemainderTypeWire { value: data }
     }
 }
 
@@ -303,14 +315,14 @@ impl BytesSerializable for RemainderTypeWire {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         Ok((
             RemainderTypeWire {
-                data: data.to_vec(),
+                value: data.to_vec(),
             },
             &data[0..0],
         ))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
-        self.data.clone()
+        self.value.clone()
     }
 }
 
