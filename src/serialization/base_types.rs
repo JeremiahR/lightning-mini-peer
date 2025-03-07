@@ -1,24 +1,24 @@
 use crate::messages::MessageType;
-use crate::serialization::{BytesSerializable, SerializationError};
+use crate::serialization::{SerializableToBytes, SerializationError};
 
 #[derive(Debug, Clone)]
-pub struct MessageTypeWire {
+pub struct MessageTypeElement {
     pub id: u16,
 }
 
-impl MessageTypeWire {
+impl MessageTypeElement {
     pub fn new(mtype: MessageType) -> Self {
-        MessageTypeWire { id: mtype.as_u16() }
+        MessageTypeElement { id: mtype.as_u16() }
     }
 }
 
-impl BytesSerializable for MessageTypeWire {
+impl SerializableToBytes for MessageTypeElement {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 2 {
             return Err(SerializationError::TooFewBytes);
         }
         let id = u16::from_be_bytes([data[0], data[1]]);
-        Ok((MessageTypeWire { id }, &data[2..]))
+        Ok((MessageTypeElement { id }, &data[2..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
@@ -27,21 +27,21 @@ impl BytesSerializable for MessageTypeWire {
 }
 
 #[derive(Debug)]
-pub struct U16SizedBytesWire {
+pub struct WireU16SizedBytes {
     num_bytes: u16,
     pub value: Vec<u8>,
 }
 
-impl U16SizedBytesWire {
+impl WireU16SizedBytes {
     pub fn new(data: Vec<u8>) -> Self {
-        U16SizedBytesWire {
+        WireU16SizedBytes {
             num_bytes: data.len() as u16,
             value: data,
         }
     }
 }
 
-impl BytesSerializable for U16SizedBytesWire {
+impl SerializableToBytes for WireU16SizedBytes {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 2 {
             return Err(SerializationError::TooFewBytes);
@@ -49,7 +49,7 @@ impl BytesSerializable for U16SizedBytesWire {
         let num_bytes = u16::from_be_bytes([data[0], data[1]]);
         let our_data = data[2..2 + num_bytes as usize].to_vec();
         Ok((
-            U16SizedBytesWire {
+            WireU16SizedBytes {
                 num_bytes,
                 value: our_data,
             },
@@ -65,7 +65,7 @@ impl BytesSerializable for U16SizedBytesWire {
 }
 
 #[derive(Debug)]
-pub struct NodeAddressesWire {
+pub struct NodeAddressesElement {
     pub ipv4_addresses: Vec<[u8; 6]>,
     pub ipv6_addresses: Vec<[u8; 16]>,
     pub torv2_addresses: Vec<[u8; 12]>,
@@ -73,9 +73,9 @@ pub struct NodeAddressesWire {
     pub dns_hostname: Vec<u8>,
 }
 
-impl BytesSerializable for NodeAddressesWire {
+impl SerializableToBytes for NodeAddressesElement {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
-        let (wrapper_struct, rest) = U16SizedBytesWire::from_bytes(data).unwrap();
+        let (wrapper_struct, rest) = WireU16SizedBytes::from_bytes(data).unwrap();
         let mut ipv4_addresses = Vec::new();
         let mut ipv6_addresses = Vec::new();
         let mut torv2_addresses = Vec::new();
@@ -114,7 +114,7 @@ impl BytesSerializable for NodeAddressesWire {
             buf = buf[chomp_bytes..].to_vec();
         }
         Ok((
-            NodeAddressesWire {
+            NodeAddressesElement {
                 ipv4_addresses,
                 ipv6_addresses,
                 torv2_addresses,
@@ -147,27 +147,27 @@ impl BytesSerializable for NodeAddressesWire {
             buf.extend([5u8]);
             buf.extend(self.dns_hostname.clone());
         }
-        U16SizedBytesWire::new(buf).to_bytes()
+        WireU16SizedBytes::new(buf).to_bytes()
     }
 }
 
 #[derive(Debug)]
-pub struct SingleByteWire {
+pub struct Wire1Byte {
     pub value: u8,
 }
 
-impl SingleByteWire {
+impl Wire1Byte {
     pub fn new(value: u8) -> Self {
-        SingleByteWire { value }
+        Wire1Byte { value }
     }
 }
 
-impl BytesSerializable for SingleByteWire {
+impl SerializableToBytes for Wire1Byte {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 1 {
             return Err(SerializationError::TooFewBytes);
         }
-        Ok((SingleByteWire { value: data[0] }, &data[1..]))
+        Ok((Wire1Byte { value: data[0] }, &data[1..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
@@ -180,7 +180,7 @@ pub struct RGBColorWire {
     bytes: [u8; 3],
 }
 
-impl BytesSerializable for RGBColorWire {
+impl SerializableToBytes for RGBColorWire {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 3 {
             return Err(SerializationError::TooFewBytes);
@@ -199,23 +199,23 @@ impl BytesSerializable for RGBColorWire {
 }
 
 #[derive(Debug)]
-pub struct U16IntWire {
+pub struct WireU16Int {
     pub value: u16,
 }
 
-impl U16IntWire {
+impl WireU16Int {
     pub fn new(value: u16) -> Self {
-        U16IntWire { value }
+        WireU16Int { value }
     }
 }
 
-impl BytesSerializable for U16IntWire {
+impl SerializableToBytes for WireU16Int {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 2 {
             return Err(SerializationError::TooFewBytes);
         }
         let value = u16::from_be_bytes([data[0], data[1]]);
-        Ok((U16IntWire { value }, &data[2..]))
+        Ok((WireU16Int { value }, &data[2..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
@@ -224,23 +224,23 @@ impl BytesSerializable for U16IntWire {
 }
 
 #[derive(Debug)]
-pub struct U32IntWire {
+pub struct WireU32Int {
     pub value: u32,
 }
 
-impl U32IntWire {
+impl WireU32Int {
     pub fn new(value: u32) -> Self {
-        U32IntWire { value }
+        WireU32Int { value }
     }
 }
 
-impl BytesSerializable for U32IntWire {
+impl SerializableToBytes for WireU32Int {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 4 {
             return Err(SerializationError::TooFewBytes);
         }
         let value = u32::from_be_bytes([data[0], data[1], data[2], data[3]]);
-        Ok((U32IntWire { value }, &data[4..]))
+        Ok((WireU32Int { value }, &data[4..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
@@ -249,17 +249,17 @@ impl BytesSerializable for U32IntWire {
 }
 
 #[derive(Debug)]
-pub struct U64IntWire {
+pub struct WireU64Int {
     pub value: u64,
 }
 
-impl U64IntWire {
+impl WireU64Int {
     pub fn new(value: u64) -> Self {
-        U64IntWire { value }
+        WireU64Int { value }
     }
 }
 
-impl BytesSerializable for U64IntWire {
+impl SerializableToBytes for WireU64Int {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 4 {
             return Err(SerializationError::TooFewBytes);
@@ -267,7 +267,7 @@ impl BytesSerializable for U64IntWire {
         let value = u64::from_be_bytes([
             data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
         ]);
-        Ok((U64IntWire { value }, &data[8..]))
+        Ok((WireU64Int { value }, &data[8..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
@@ -286,7 +286,7 @@ impl Wire64Bytes {
     }
 }
 
-impl BytesSerializable for Wire64Bytes {
+impl SerializableToBytes for Wire64Bytes {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 64 {
             return Err(SerializationError::TooFewBytes);
@@ -312,7 +312,7 @@ impl Wire32Bytes {
     }
 }
 
-impl BytesSerializable for Wire32Bytes {
+impl SerializableToBytes for Wire32Bytes {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 32 {
             return Err(SerializationError::TooFewBytes);
@@ -338,7 +338,7 @@ impl Wire33Bytes {
     }
 }
 
-impl BytesSerializable for Wire33Bytes {
+impl SerializableToBytes for Wire33Bytes {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 33 {
             return Err(SerializationError::TooFewBytes);
@@ -358,7 +358,7 @@ pub struct Bytes8Element {
     pub value: [u8; 8],
 }
 
-impl BytesSerializable for Bytes8Element {
+impl SerializableToBytes for Bytes8Element {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 8 {
             return Err(SerializationError::TooFewBytes);
@@ -382,7 +382,7 @@ pub struct ShortChannelIDElement {
 
 impl ShortChannelIDElement {}
 
-impl BytesSerializable for ShortChannelIDElement {
+impl SerializableToBytes for ShortChannelIDElement {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 8 {
             return Err(SerializationError::TooFewBytes);
@@ -419,24 +419,24 @@ impl BytesSerializable for ShortChannelIDElement {
 }
 
 #[derive(Debug)]
-pub struct Bytes3Element {
+pub struct Wire3Bytes {
     pub value: [u8; 3],
 }
 
-impl Bytes3Element {
+impl Wire3Bytes {
     pub fn new(data: [u8; 3]) -> Self {
-        Bytes3Element { value: data }
+        Wire3Bytes { value: data }
     }
 }
 
-impl BytesSerializable for Bytes3Element {
+impl SerializableToBytes for Wire3Bytes {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 3 {
             return Err(SerializationError::TooFewBytes);
         }
         let mut bytes = [0u8; 3];
         bytes.copy_from_slice(&data[..3]);
-        Ok((Bytes3Element { value: bytes }, &data[3..]))
+        Ok((Wire3Bytes { value: bytes }, &data[3..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
@@ -455,7 +455,7 @@ impl RemainderTypeWire {
     }
 }
 
-impl BytesSerializable for RemainderTypeWire {
+impl SerializableToBytes for RemainderTypeWire {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         Ok((
             RemainderTypeWire {
@@ -470,16 +470,16 @@ impl BytesSerializable for RemainderTypeWire {
     }
 }
 
-pub type IgnoredStruct = U16SizedBytesWire;
-pub type NumPongBytesStruct = U16IntWire;
-pub type GlobalFeaturesStruct = U16SizedBytesWire;
-pub type LocalFeaturesStruct = U16SizedBytesWire;
-pub type TimestampElement = U32IntWire;
-pub type TimestampRangeElement = U32IntWire;
-pub type FeaturesStruct = U16SizedBytesWire;
+pub type IgnoredBytesElement = WireU16SizedBytes;
+pub type NumPongBytesElement = WireU16Int;
+pub type GlobalFeaturesElement = WireU16SizedBytes;
+pub type LocalFeaturesStruct = WireU16SizedBytes;
+pub type TimestampElement = WireU32Int;
+pub type TimestampRangeElement = WireU32Int;
+pub type FeaturesElement = WireU16SizedBytes;
 pub type TLVStreamElement = RemainderTypeWire;
 pub type SignatureElement = Wire64Bytes;
 pub type ChainHashElement = Wire32Bytes;
 #[allow(dead_code)]
 pub type NodeAliasElement = Wire32Bytes;
-pub type PointElementWire = Wire33Bytes;
+pub type PointElement = Wire33Bytes;

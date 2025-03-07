@@ -3,8 +3,8 @@ use crate::messages::{
     MessageType, NodeAnnouncementMessage, PingMessage, PongMessage, QueryChannelRangeMessage,
     ReplyChannelRangeMessage, UnknownMessage,
 };
-use crate::serialization::BytesSerializable;
-use crate::serialization::MessageTypeWire;
+use crate::serialization::MessageTypeElement;
+use crate::serialization::SerializableToBytes;
 
 #[derive(Debug)]
 pub enum MessageDecoderError {
@@ -47,7 +47,7 @@ pub struct MessageDecoder {}
 
 impl MessageDecoder {
     pub fn from_bytes(bytes: &[u8]) -> Result<(MessageContainer, &[u8]), MessageDecoderError> {
-        let (message_type_struct, _) = match MessageTypeWire::from_bytes(bytes) {
+        let (message_type_struct, _) = match MessageTypeElement::from_bytes(bytes) {
             Ok(message_type) => message_type,
             Err(_) => return Err(MessageDecoderError::Error),
         };
@@ -150,7 +150,7 @@ mod tests {
         for line in read_example_messages() {
             let initial_bytes = hex::decode(line).unwrap();
             let (message_type_struct, _) =
-                MessageTypeWire::from_bytes(initial_bytes.as_slice()).unwrap();
+                MessageTypeElement::from_bytes(initial_bytes.as_slice()).unwrap();
             println!("message_type_struct: {:?}", message_type_struct);
             let (msg, remainder) = MessageDecoder::from_bytes(initial_bytes.as_slice()).unwrap();
             assert_eq!([msg.to_bytes(), remainder.to_vec()].concat(), initial_bytes);

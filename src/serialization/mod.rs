@@ -8,7 +8,7 @@ pub enum SerializationError {
     InvalidValue,
 }
 
-pub trait BytesSerializable: Sized {
+pub trait SerializableToBytes: Sized {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError>;
     fn to_bytes(&self) -> Vec<u8>;
 }

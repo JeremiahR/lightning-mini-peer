@@ -8,7 +8,7 @@ use crate::{
     messages::{InitMessage, PongMessage},
     node::Node,
     node_connection::{NodeConnection, NodeConnectionError},
-    serialization::BytesSerializable,
+    serialization::SerializableToBytes,
 };
 
 #[allow(dead_code)]
