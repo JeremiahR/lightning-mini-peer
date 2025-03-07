@@ -1,5 +1,4 @@
 use bitcoin::secp256k1::PublicKey;
-use std::str::FromStr;
 
 #[derive(Debug)]
 pub struct Node {

@@ -1,4 +1,3 @@
-use crate::node::Node;
 use bitcoin::secp256k1::SecretKey as BitcoinSecretKey;
 use secp256k1::rand::rngs::OsRng;
 use secp256k1::Secp256k1;

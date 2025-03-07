@@ -19,9 +19,8 @@ async fn main() {
     let args: Vec<String> = env::args().collect();
     let node_str = args.last().unwrap();
     let node = Node::from_str(node_str);
-    let session_secret_key = new_random_secret_key();
 
-    let mut peer = MiniPeer::new(session_secret_key);
+    let mut peer = MiniPeer::new(new_random_secret_key());
     peer.open_node_connection(&node).await.unwrap();
     peer.event_loop().await;
 }
