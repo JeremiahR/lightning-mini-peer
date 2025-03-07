@@ -93,6 +93,9 @@ impl BytesSerializable for NodeAddressesWire {
         let mut dns_hostname = Vec::new();
         let mut buf = wrapper_struct.value.clone();
         loop {
+            if buf.is_empty() {
+                break;
+            }
             let single_byte = buf[0];
             buf = buf[1..].to_vec();
             let chomp_bytes = match single_byte {
@@ -119,9 +122,6 @@ impl BytesSerializable for NodeAddressesWire {
                 _ => return Err(SerializationError::InvalidValue),
             };
             buf = buf[chomp_bytes..].to_vec();
-            if buf.is_empty() {
-                break;
-            }
         }
         Ok((
             NodeAddressesWire {
