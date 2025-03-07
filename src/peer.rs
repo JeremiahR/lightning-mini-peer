@@ -104,7 +104,10 @@ impl MiniPeer {
             }
             MessageContainer::NodeAnnouncement(announcement) => {
                 println!("Received node announcement.");
-                if !self.node_connections.contains_key(&announcement.node_id) {
+                if !self
+                    .node_connections
+                    .contains_key(&announcement.node_id.value)
+                {
                     let node = announcement.as_node();
                     println!("Found new node: {}", node.address());
                     if DO_CONNECT_TO_NEW_NODES {

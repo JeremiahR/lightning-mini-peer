@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::messages::MessageType;
 use crate::serialization::{SerializableToBytes, SerializationError};
 
@@ -275,30 +277,59 @@ impl SerializableToBytes for WireU64Int {
     }
 }
 
+fn decode_64_bytes(data: &[u8]) -> Result<([u8; 64], &[u8]), SerializationError> {
+    if data.len() < 64 {
+        return Err(SerializationError::TooFewBytes);
+    }
+    let mut bytes = [0u8; 64];
+    bytes.copy_from_slice(&data[..64]);
+    Ok((bytes, &data[64..]))
+}
+
 #[derive(Debug)]
 pub struct Wire64Bytes {
     pub value: [u8; 64],
 }
 
-impl Wire64Bytes {
-    pub fn new(data: [u8; 64]) -> Self {
-        Wire64Bytes { value: data }
-    }
-}
-
 impl SerializableToBytes for Wire64Bytes {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
-        if data.len() < 64 {
-            return Err(SerializationError::TooFewBytes);
-        }
-        let mut bytes = [0u8; 64];
-        bytes.copy_from_slice(&data[..64]);
-        Ok((Wire64Bytes { value: bytes }, &data[64..]))
+        let (bytes, data) = decode_64_bytes(data)?;
+        Ok((Wire64Bytes { value: bytes }, data))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
         self.value.to_vec()
     }
+}
+
+pub struct SignatureElement {
+    value: [u8; 64],
+}
+
+impl SerializableToBytes for SignatureElement {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        let (bytes, data) = decode_64_bytes(data)?;
+        Ok((SignatureElement { value: bytes }, data))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.value.to_vec()
+    }
+}
+
+impl fmt::Debug for SignatureElement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", hex::encode(&self.value))
+    }
+}
+
+fn decode_32_bytes(data: &[u8]) -> Result<([u8; 32], &[u8]), SerializationError> {
+    if data.len() < 32 {
+        return Err(SerializationError::TooFewBytes);
+    }
+    let mut bytes = [0u8; 32];
+    bytes.copy_from_slice(&data[..32]);
+    Ok((bytes, &data[32..]))
 }
 
 #[derive(Debug)]
@@ -314,12 +345,8 @@ impl Wire32Bytes {
 
 impl SerializableToBytes for Wire32Bytes {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
-        if data.len() < 32 {
-            return Err(SerializationError::TooFewBytes);
-        }
-        let mut bytes = [0u8; 32];
-        bytes.copy_from_slice(&data[..32]);
-        Ok((Wire32Bytes { value: bytes }, &data[32..]))
+        let (data, remainder) = decode_32_bytes(data).unwrap();
+        Ok((Wire32Bytes { value: data }, remainder))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
@@ -327,25 +354,67 @@ impl SerializableToBytes for Wire32Bytes {
     }
 }
 
+#[derive(Clone)]
+pub struct ChainHashElement {
+    pub value: [u8; 32],
+}
+
+impl fmt::Debug for ChainHashElement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", hex::encode(&self.value))
+    }
+}
+
+impl SerializableToBytes for ChainHashElement {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        let (data, remainder) = decode_32_bytes(data).unwrap();
+        Ok((ChainHashElement { value: data }, remainder))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.value.to_vec()
+    }
+}
+
+fn decode_33_bytes(data: &[u8]) -> Result<([u8; 33], &[u8]), SerializationError> {
+    if data.len() < 33 {
+        return Err(SerializationError::TooFewBytes);
+    }
+    let mut bytes = [0u8; 33];
+    bytes.copy_from_slice(&data[..33]);
+    Ok((bytes, &data[33..]))
+}
+
 #[derive(Debug)]
 pub struct Wire33Bytes {
     pub value: [u8; 33],
 }
 
-impl Wire33Bytes {
-    pub fn new(data: [u8; 33]) -> Self {
-        Wire33Bytes { value: data }
+impl SerializableToBytes for Wire33Bytes {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        let (bytes, remainder) = decode_33_bytes(data).unwrap();
+        Ok((Wire33Bytes { value: bytes }, remainder))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.value.to_vec()
     }
 }
 
-impl SerializableToBytes for Wire33Bytes {
+pub struct PointElement {
+    pub value: [u8; 33],
+}
+
+impl fmt::Debug for PointElement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", hex::encode(&self.value))
+    }
+}
+
+impl SerializableToBytes for PointElement {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
-        if data.len() < 33 {
-            return Err(SerializationError::TooFewBytes);
-        }
-        let mut bytes = [0u8; 33];
-        bytes.copy_from_slice(&data[..33]);
-        Ok((Wire33Bytes { value: bytes }, &data[33..]))
+        let (bytes, remainder) = decode_33_bytes(data).unwrap();
+        Ok((PointElement { value: bytes }, remainder))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
@@ -478,8 +547,5 @@ pub type TimestampElement = WireU32Int;
 pub type TimestampRangeElement = WireU32Int;
 pub type FeaturesElement = WireU16SizedBytes;
 pub type TLVStreamElement = RemainderTypeWire;
-pub type SignatureElement = Wire64Bytes;
-pub type ChainHashElement = Wire32Bytes;
 #[allow(dead_code)]
 pub type NodeAliasElement = Wire32Bytes;
-pub type PointElement = Wire33Bytes;
