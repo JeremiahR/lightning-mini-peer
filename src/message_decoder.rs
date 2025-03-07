@@ -1,9 +1,9 @@
+use crate::base_types::{BytesSerializable, MessageTypeWire};
 use crate::messages::{
     ChannelAnnouncementMessage, ChannelUpdateMessage, GossipTimestampFilterMessage, InitMessage,
     MessageType, NodeAnnouncementMessage, PingMessage, PongMessage, QueryChannelRangeMessage,
     ReplyChannelRangeMessage, UnknownMessage,
 };
-use crate::wire::{BytesSerializable, MessageTypeWire};
 
 #[derive(Debug)]
 pub enum MessageDecoderError {

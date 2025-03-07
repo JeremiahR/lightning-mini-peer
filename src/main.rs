@@ -1,14 +1,11 @@
-use message_decoder::MessageContainer;
-use messages::InitMessage;
-use messages::PingMessage;
 use peer::MiniPeer;
-use wire::BytesSerializable;
 
 use crate::util::new_random_secret_key;
 use crate::util::parse_node;
 
 use std::env;
 
+mod base_types;
 mod message_decoder;
 mod messages;
 mod node;
@@ -16,7 +13,6 @@ mod node_connection;
 mod peer;
 mod util;
 mod vendor;
-mod wire;
 
 #[tokio::main]
 async fn main() {
