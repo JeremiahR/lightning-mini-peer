@@ -181,7 +181,7 @@ pub struct ChannelAnnouncementMessage {
     bitcoin_signature_2: [u8; 64],
     features: Vec<u8>,
     chain_hash: [u8; 32],
-    short_channel_id: [u8; 8],
+    short_channel_id: ShortChannelIDElement,
     node_id_1: [u8; 33],
     node_id_2: [u8; 33],
     bitcoin_node_id_1: [u8; 33],
@@ -211,7 +211,7 @@ impl BytesSerializable for ChannelAnnouncementMessage {
                 bitcoin_signature_2: bitcoin_signature_2.value,
                 features: features.value,
                 chain_hash: chain_hash.value,
-                short_channel_id: short_channel_id.value,
+                short_channel_id,
                 node_id_1: node_id_1.value,
                 node_id_2: node_id_2.value,
                 bitcoin_node_id_1: bitcoin_node_id_1.value,
@@ -230,7 +230,7 @@ impl BytesSerializable for ChannelAnnouncementMessage {
         bytes.extend(SignatureElement::new(self.bitcoin_signature_2).to_bytes());
         bytes.extend(FeaturesStruct::new(self.features.clone()).to_bytes());
         bytes.extend(ChainHashElement::new(self.chain_hash).to_bytes());
-        bytes.extend(ShortChannelIDElement::new(self.short_channel_id).to_bytes());
+        bytes.extend(self.short_channel_id.to_bytes());
         bytes.extend(PointElementWire::new(self.node_id_1).to_bytes());
         bytes.extend(PointElementWire::new(self.node_id_2).to_bytes());
         bytes.extend(PointElementWire::new(self.bitcoin_node_id_1).to_bytes());
@@ -427,7 +427,7 @@ impl BytesSerializable for NodeAnnouncementMessage {
 pub struct ChannelUpdateMessage {
     signature: [u8; 64],
     chain_hash: [u8; 32],
-    short_channel_id: [u8; 8],
+    short_channel_id: ShortChannelIDElement,
     timestamp: u32,
     message_flags: u8,
     channel_flags: u8,
@@ -457,7 +457,7 @@ impl BytesSerializable for ChannelUpdateMessage {
             ChannelUpdateMessage {
                 signature: signature.value,
                 chain_hash: chain_hash.value,
-                short_channel_id: short_channel_id.value,
+                short_channel_id,
                 timestamp: timestamp.value,
                 message_flags: message_flags.value,
                 channel_flags: channel_flags.value,
@@ -476,7 +476,7 @@ impl BytesSerializable for ChannelUpdateMessage {
         bytes.extend(MessageTypeWire::new(MessageType::ChannelUpdate).to_bytes());
         bytes.extend(SignatureElement::new(self.signature).to_bytes());
         bytes.extend(ChainHashElement::new(self.chain_hash).to_bytes());
-        bytes.extend(ShortChannelIDElement::new(self.short_channel_id).to_bytes());
+        bytes.extend(self.short_channel_id.to_bytes());
         bytes.extend(TimestampElement::new(self.timestamp).to_bytes());
         bytes.extend(SingleByteWire::new(self.message_flags).to_bytes());
         bytes.extend(SingleByteWire::new(self.channel_flags).to_bytes());

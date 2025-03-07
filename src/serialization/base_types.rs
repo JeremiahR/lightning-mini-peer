@@ -358,12 +358,6 @@ pub struct Bytes8Element {
     pub value: [u8; 8],
 }
 
-impl Bytes8Element {
-    pub fn new(data: [u8; 8]) -> Self {
-        Bytes8Element { value: data }
-    }
-}
-
 impl BytesSerializable for Bytes8Element {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         if data.len() < 8 {
@@ -376,6 +370,51 @@ impl BytesSerializable for Bytes8Element {
 
     fn to_bytes(&self) -> Vec<u8> {
         self.value.to_vec()
+    }
+}
+
+#[derive(Debug)]
+pub struct ShortChannelIDElement {
+    pub block_height: u32,
+    pub tx_index: u32,
+    pub output_index: u16,
+}
+
+impl ShortChannelIDElement {}
+
+impl BytesSerializable for ShortChannelIDElement {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        if data.len() < 8 {
+            return Err(SerializationError::TooFewBytes);
+        }
+        let block_height = u32::from_be_bytes([0, data[0], data[1], data[2]]);
+        let tx_index = u32::from_be_bytes([0, data[3], data[4], data[5]]);
+        let output_index = u16::from_be_bytes([data[6], data[7]]);
+        Ok((
+            ShortChannelIDElement {
+                block_height,
+                tx_index,
+                output_index,
+            },
+            &data[8..],
+        ))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        let block_bytes = self.block_height.to_be_bytes();
+        let tx_bytes = self.tx_index.to_be_bytes();
+        let output_bytes = self.output_index.to_be_bytes();
+        [
+            block_bytes[1],
+            block_bytes[2],
+            block_bytes[3],
+            tx_bytes[1],
+            tx_bytes[2],
+            tx_bytes[3],
+            output_bytes[0],
+            output_bytes[1],
+        ]
+        .to_vec()
     }
 }
 
@@ -439,7 +478,6 @@ pub type TimestampElement = U32IntWire;
 pub type TimestampRangeElement = U32IntWire;
 pub type FeaturesStruct = U16SizedBytesWire;
 pub type TLVStreamElement = RemainderTypeWire;
-pub type ShortChannelIDElement = Bytes8Element;
 pub type SignatureElement = Wire64Bytes;
 pub type ChainHashElement = Wire32Bytes;
 #[allow(dead_code)]
