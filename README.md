@@ -21,13 +21,14 @@ In the long term it would be nice to run this directly on top of [snow](https://
 
 # Todos
 
-- [DONE] De/serialize pings, pongs, inits, and basic message types.
+- [DONE] De/serialize init, ping, pong.
+- [DONE] De/serialize gossip filters, node and channel announcements/updates.
 - [DONE] Handshake and keep alive connection. Print inbound/outbound messages.
-- [DONE] Send pings, recieve pongs.
-- Create message handler that responds to pings.
-- De/serialize gossip and channel messages.
-- Interrogate connected node(s) to learn about more nodes.
-- Interrogate connected node(s) to learn about channels.
+- [DONE] Send pings, recieve pongs, respond to pongs.
+- [DONE] Ask for and recieve gossip.
+- Connect to > 1 node.
+- Build node/channel map.
+- Relay gossip.
 
 # Spec
 
