@@ -26,9 +26,10 @@ In the long term it would be nice to run this directly on top of [snow](https://
 - [DONE] Handshake and keep alive connection. Print inbound/outbound messages.
 - [DONE] Send pings, recieve pongs, respond to pongs.
 - [DONE] Ask for and recieve gossip.
-- Connect to > 1 node.
-- Build node/channel map.
+- [DONE] Connect to newly discovered nodes and ask for gossip.
+- Build channel map.
 - Relay gossip.
+- JSON output for debugging.
 
 # Spec
 
