@@ -1,8 +1,9 @@
 use crate::wire::{
     Bytes3Element, BytesSerializable, ChainHashElement, FeaturesStruct, GlobalFeaturesStruct,
-    IgnoredStruct, LocalFeaturesStruct, MessageTypeWire, NumPongBytesStruct, PointElementWire,
-    SerializationError, ShortChannelIDElement, SignatureElement, SingleByteWire, TLVStreamElement,
-    TimestampElement, TimestampRangeElement, U16SizedBytesWire, U32IntWire, Wire32Bytes,
+    IgnoredStruct, LocalFeaturesStruct, MessageTypeWire, NodeAddressesWire, NumPongBytesStruct,
+    PointElementWire, SerializationError, ShortChannelIDElement, SignatureElement, SingleByteWire,
+    TLVStreamElement, TimestampElement, TimestampRangeElement, U16IntWire, U16SizedBytesWire,
+    U32IntWire, U64IntWire, Wire32Bytes,
 };
 
 use num_enum::TryFromPrimitive;
@@ -361,7 +362,7 @@ pub struct NodeAnnouncementMessage {
     node_id: [u8; 33],
     rgb_color: [u8; 3],
     alias: [u8; 32],
-    addresses: Vec<u8>,
+    addresses: NodeAddressesWire,
 }
 
 impl BytesSerializable for NodeAnnouncementMessage {
@@ -373,7 +374,7 @@ impl BytesSerializable for NodeAnnouncementMessage {
         let (node_id, data) = PointElementWire::from_bytes(data)?;
         let (rgb_color, data) = Bytes3Element::from_bytes(data)?;
         let (alias, data) = Wire32Bytes::from_bytes(data)?;
-        let (addresses, data) = U16SizedBytesWire::from_bytes(data)?;
+        let (addresses, data) = NodeAddressesWire::from_bytes(data)?;
 
         Ok((
             NodeAnnouncementMessage {
@@ -383,7 +384,7 @@ impl BytesSerializable for NodeAnnouncementMessage {
                 node_id: node_id.value,
                 rgb_color: rgb_color.value,
                 alias: alias.value,
-                addresses: addresses.value,
+                addresses,
             },
             data,
         ))
@@ -398,7 +399,73 @@ impl BytesSerializable for NodeAnnouncementMessage {
         bytes.extend(PointElementWire::new(self.node_id).to_bytes());
         bytes.extend(Bytes3Element::new(self.rgb_color).to_bytes());
         bytes.extend(Wire32Bytes::new(self.alias).to_bytes());
-        bytes.extend(U16SizedBytesWire::new(self.addresses.clone()).to_bytes());
+        bytes.extend(self.addresses.to_bytes());
+        bytes
+    }
+}
+
+#[derive(Debug)]
+pub struct ChannelUpdateMessage {
+    signature: [u8; 64],
+    chain_hash: [u8; 32],
+    short_channel_id: [u8; 8],
+    timestamp: u32,
+    message_flags: u8,
+    channel_flags: u8,
+    cltv_expiry_delta: u16,
+    htlc_minimum_msat: u64,
+    fee_base_msat: u32,
+    fee_proportional_millionths: u32,
+    htlc_maximum_msat: u64,
+}
+
+impl BytesSerializable for ChannelUpdateMessage {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        let (_, data) = MessageTypeWire::from_bytes(data)?;
+        let (signature, data) = SignatureElement::from_bytes(data).unwrap();
+        let (chain_hash, data) = ChainHashElement::from_bytes(data).unwrap();
+        let (short_channel_id, data) = ShortChannelIDElement::from_bytes(data).unwrap();
+        let (timestamp, data) = TimestampElement::from_bytes(data).unwrap();
+        let (message_flags, data) = SingleByteWire::from_bytes(data).unwrap();
+        let (channel_flags, data) = SingleByteWire::from_bytes(data).unwrap();
+        let (cltv_expiry_delta, data) = U16IntWire::from_bytes(data).unwrap();
+        let (htlc_minimum_msat, data) = U64IntWire::from_bytes(data).unwrap();
+        let (fee_base_msat, data) = U32IntWire::from_bytes(data).unwrap();
+        let (fee_proportional_millionths, data) = U32IntWire::from_bytes(data).unwrap();
+        let (htlc_maximum_msat, data) = U64IntWire::from_bytes(data).unwrap();
+
+        Ok((
+            ChannelUpdateMessage {
+                signature: signature.value,
+                chain_hash: chain_hash.value,
+                short_channel_id: short_channel_id.value,
+                timestamp: timestamp.value,
+                message_flags: message_flags.value,
+                channel_flags: channel_flags.value,
+                cltv_expiry_delta: cltv_expiry_delta.value,
+                htlc_minimum_msat: htlc_minimum_msat.value,
+                fee_base_msat: fee_base_msat.value,
+                fee_proportional_millionths: fee_proportional_millionths.value,
+                htlc_maximum_msat: htlc_maximum_msat.value,
+            },
+            data,
+        ))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend(MessageTypeWire::new(MessageType::ChannelUpdate).to_bytes());
+        bytes.extend(SignatureElement::new(self.signature).to_bytes());
+        bytes.extend(ChainHashElement::new(self.chain_hash).to_bytes());
+        bytes.extend(ShortChannelIDElement::new(self.short_channel_id).to_bytes());
+        bytes.extend(TimestampElement::new(self.timestamp).to_bytes());
+        bytes.extend(SingleByteWire::new(self.message_flags).to_bytes());
+        bytes.extend(SingleByteWire::new(self.channel_flags).to_bytes());
+        bytes.extend(U16IntWire::new(self.cltv_expiry_delta).to_bytes());
+        bytes.extend(U64IntWire::new(self.htlc_minimum_msat).to_bytes());
+        bytes.extend(U32IntWire::new(self.fee_base_msat).to_bytes());
+        bytes.extend(U32IntWire::new(self.fee_proportional_millionths).to_bytes());
+        bytes.extend(U64IntWire::new(self.htlc_maximum_msat).to_bytes());
         bytes
     }
 }

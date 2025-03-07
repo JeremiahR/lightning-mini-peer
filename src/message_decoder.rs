@@ -1,6 +1,6 @@
 use crate::messages::{
-    ChannelAnnouncementMessage, GossipTimestampFilterMessage, InitMessage, MessageType,
-    NodeAnnouncementMessage, PingMessage, PongMessage, QueryChannelRangeMessage,
+    ChannelAnnouncementMessage, ChannelUpdateMessage, GossipTimestampFilterMessage, InitMessage,
+    MessageType, NodeAnnouncementMessage, PingMessage, PongMessage, QueryChannelRangeMessage,
     ReplyChannelRangeMessage, UnknownMessage,
 };
 use crate::wire::{BytesSerializable, MessageTypeWire};
@@ -21,6 +21,7 @@ pub enum MessageContainer {
     GossipTimestampFilter(GossipTimestampFilterMessage),
     QueryChannelRange(QueryChannelRangeMessage),
     ReplyChannelRange(ReplyChannelRangeMessage),
+    ChannelUpdate(ChannelUpdateMessage),
     Unknown(UnknownMessage),
 }
 
@@ -35,6 +36,7 @@ impl MessageContainer {
             MessageContainer::GossipTimestampFilter(message) => message.to_bytes(),
             MessageContainer::QueryChannelRange(message) => message.to_bytes(),
             MessageContainer::ReplyChannelRange(message) => message.to_bytes(),
+            MessageContainer::ChannelUpdate(message) => message.to_bytes(),
             MessageContainer::Unknown(message) => message.to_bytes(),
         }
     }
@@ -105,6 +107,13 @@ impl MessageDecoder {
                     Err(_) => return Err(MessageDecoderError::Error),
                 };
                 Ok((MessageContainer::QueryChannelRange(message), data))
+            }
+            MessageType::ChannelUpdate => {
+                let (message, data) = match ChannelUpdateMessage::from_bytes(bytes) {
+                    Ok(x) => x,
+                    Err(_) => return Err(MessageDecoderError::Error),
+                };
+                Ok((MessageContainer::ChannelUpdate(message), data))
             }
             _ => {
                 let (message, data) = match UnknownMessage::from_bytes(bytes) {

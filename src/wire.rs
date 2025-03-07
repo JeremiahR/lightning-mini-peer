@@ -3,6 +3,7 @@ use crate::messages::MessageType;
 #[derive(Debug, Clone)]
 pub enum SerializationError {
     TooFewBytes,
+    InvalidValue,
 }
 
 pub trait BytesSerializable: Sized {
@@ -70,6 +71,93 @@ impl BytesSerializable for U16SizedBytesWire {
         let mut bytes = self.num_bytes.to_be_bytes().to_vec();
         bytes.extend(self.value.clone());
         bytes
+    }
+}
+
+#[derive(Debug)]
+pub struct NodeAddressesWire {
+    pub ipv4_addresses: Vec<[u8; 6]>,
+    pub ipv6_addresses: Vec<[u8; 16]>,
+    pub torv2_addresses: Vec<[u8; 12]>,
+    pub torv3_addresses: Vec<[u8; 37]>,
+    pub dns_hostname: Vec<u8>,
+}
+
+impl BytesSerializable for NodeAddressesWire {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        let (wrapper_struct, rest) = U16SizedBytesWire::from_bytes(data).unwrap();
+        let mut ipv4_addresses = Vec::new();
+        let mut ipv6_addresses = Vec::new();
+        let mut torv2_addresses = Vec::new();
+        let mut torv3_addresses = Vec::new();
+        let mut dns_hostname = Vec::new();
+        let mut buf = wrapper_struct.value.clone();
+        loop {
+            let single_byte = buf[0];
+            buf = buf[1..].to_vec();
+            let chomp_bytes = match single_byte {
+                1 => {
+                    ipv4_addresses.push(buf[..6].try_into().unwrap());
+                    6
+                }
+                2 => {
+                    ipv6_addresses.push(buf[..18].try_into().unwrap());
+                    18
+                }
+                3 => {
+                    torv2_addresses.push(buf[..12].try_into().unwrap());
+                    12
+                }
+                4 => {
+                    torv3_addresses.push(buf[..37].try_into().unwrap());
+                    37
+                }
+                5 => {
+                    dns_hostname.extend(&buf);
+                    buf.len()
+                } // for dns_hostname chomp the rest of the buffer
+                _ => return Err(SerializationError::InvalidValue),
+            };
+            buf = buf[chomp_bytes..].to_vec();
+            if buf.is_empty() {
+                break;
+            }
+        }
+        Ok((
+            NodeAddressesWire {
+                ipv4_addresses,
+                ipv6_addresses,
+                torv2_addresses,
+                torv3_addresses,
+                dns_hostname,
+            },
+            rest,
+        ))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buf = Vec::new();
+        for address in self.ipv4_addresses.iter() {
+            buf.extend([1u8]);
+            buf.extend(address);
+        }
+        for address in self.ipv6_addresses.iter() {
+            buf.extend([2u8]);
+            buf.extend(address);
+        }
+        for address in self.torv2_addresses.iter() {
+            buf.extend([3u8]);
+            buf.extend(address);
+        }
+        for address in self.torv3_addresses.iter() {
+            buf.extend([4u8]);
+            buf.extend(address);
+        }
+        if !self.dns_hostname.is_empty() {
+            buf.extend([5u8]);
+            buf.extend(self.dns_hostname.clone());
+        }
+        U16SizedBytesWire::new(buf).to_bytes()
     }
 }
 
@@ -163,6 +251,33 @@ impl BytesSerializable for U32IntWire {
         }
         let value = u32::from_be_bytes([data[0], data[1], data[2], data[3]]);
         Ok((U32IntWire { value }, &data[4..]))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.value.to_be_bytes().to_vec()
+    }
+}
+
+#[derive(Debug)]
+pub struct U64IntWire {
+    pub value: u64,
+}
+
+impl U64IntWire {
+    pub fn new(value: u64) -> Self {
+        U64IntWire { value }
+    }
+}
+
+impl BytesSerializable for U64IntWire {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        if data.len() < 4 {
+            return Err(SerializationError::TooFewBytes);
+        }
+        let value = u64::from_be_bytes([
+            data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
+        ]);
+        Ok((U64IntWire { value }, &data[8..]))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
