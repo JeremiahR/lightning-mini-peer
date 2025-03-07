@@ -19,7 +19,7 @@ pub enum MessageHandlerError {
 
 pub struct MiniPeer {
     secret_key: SecretKey,
-    node_connections: HashMap<String, NodeConnection>,
+    node_connections: HashMap<[u8; 33], NodeConnection>,
 }
 
 impl MiniPeer {
@@ -85,7 +85,7 @@ impl MiniPeer {
     pub async fn handle_inbound_message(
         &mut self,
         wrapped: MessageContainer,
-        node_public_key: String,
+        node_public_key: [u8; 33],
     ) -> Result<(), MessageHandlerError> {
         println!("Received message: {:?}", wrapped);
         let node_conn = self.node_connections.get_mut(&node_public_key).unwrap();

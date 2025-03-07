@@ -27,7 +27,7 @@ pub enum NodeConnectionError {
 }
 
 pub struct NodeConnection {
-    pub public_key: String,
+    pub public_key: [u8; 33],
     stream: TcpStream,
     secp: Secp256k1<SignOnly>,
     peer_encryptor: PeerChannelEncryptor,
@@ -44,9 +44,9 @@ impl NodeConnection {
                 return Err(NodeConnectionError::ConnectionError(err));
             }
         };
-        println!("Connected to {} @ {}", node.public_key, node.address());
+        println!("Connected to {}", node.display_str());
         Ok(NodeConnection {
-            public_key: node.public_key.clone(),
+            public_key: node.public_key,
             stream,
             secp: Secp256k1::signing_only(),
             peer_encryptor: PeerChannelEncryptor::new_outbound(
