@@ -1,6 +1,6 @@
 # Lightning Mini Peer
 
-A tiny lightning network peer for mapping and sniffing the network.
+Tiny lightning network peer for mapping and sniffing the network.
 
 Goals:
 
@@ -15,9 +15,10 @@ Run `cargo run <nodeid>`
 
 See below for the features that are implemented.
 
-# Implementation Notes
+# Bolt
 
-In the long term it would be nice to run this directly on top of [snow](https://github.com/mcginty/snow), which just requires implementing the secp256k1 curve. In the short term this uses a minimal, hacked version of [rust-lightning](https://github.com/lightningdevkit/rust-lightning) with a publicly exposed peer-channel-encryptor.
+- **Bolt 8**: Uses a hacked version of rust-[rust-lightning](https://github.com/lightningdevkit/rust-lightning) with a publicly exposed peer-channel-encryptor. Eventually want to use [snow](https://github.com/mcginty/snow), after implementing the secp256k1 curve.
+- **Bolt 7**: Asks for gossip, does not relay gossip.
 
 # Todos
 
@@ -30,6 +31,7 @@ In the long term it would be nice to run this directly on top of [snow](https://
 - Build channel map.
 - Relay gossip.
 - JSON output for debugging.
+- Try on testnet (accept chainhash as cli argument).
 
 # Spec
 
