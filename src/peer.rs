@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use bitcoin::secp256k1::SecretKey;
 
 use crate::{
+    config::DO_CONNECT_TO_NEW_NODES,
     message_decoder::MessageContainer,
     messages::{InitMessage, PongMessage},
     node::Node,
@@ -72,6 +73,7 @@ impl MiniPeer {
                 return Err(MessageHandlerError::NodeHandshakeError(err));
             }
         };
+        println!("Connected to node: {}", node.address());
         let init = b"\x00\x10\x00\x00\x00\x01\xaa";
         let (im, _) = InitMessage::from_bytes(init).unwrap();
         let wrapped = MessageContainer::Init(im);
@@ -99,6 +101,22 @@ impl MiniPeer {
                     Ok(_) => (),
                     Err(e) => return Err(MessageHandlerError::NodeConnectionError(e)),
                 };
+            }
+            MessageContainer::NodeAnnouncement(announcement) => {
+                println!("Received node announcement.");
+                if !self.node_connections.contains_key(&announcement.node_id) {
+                    let node = announcement.as_node();
+                    println!("Found new node: {}", node.address());
+                    if DO_CONNECT_TO_NEW_NODES {
+                        self.open_node_connection(&node).await.unwrap();
+                    } else {
+                        println!(
+                            "Not connecting to new node because DO_CONNECT_TO_NEW_NODES=false."
+                        );
+                    }
+                } else {
+                    println!("Already connected to node.");
+                }
             }
             MessageContainer::GossipTimestampFilter(gtf) => {
                 println!("Responding to gossip timestamp filter.");

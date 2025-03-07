@@ -1,9 +1,12 @@
-use crate::serialization::{
-    Bytes3Element, BytesSerializable, ChainHashElement, FeaturesStruct, GlobalFeaturesStruct,
-    IgnoredStruct, LocalFeaturesStruct, MessageTypeWire, NodeAddressesWire, NumPongBytesStruct,
-    PointElementWire, SerializationError, ShortChannelIDElement, SignatureElement, SingleByteWire,
-    TLVStreamElement, TimestampElement, TimestampRangeElement, U16IntWire, U16SizedBytesWire,
-    U32IntWire, U64IntWire, Wire32Bytes,
+use crate::{
+    node::Node,
+    serialization::{
+        Bytes3Element, BytesSerializable, ChainHashElement, FeaturesStruct, GlobalFeaturesStruct,
+        IgnoredStruct, LocalFeaturesStruct, MessageTypeWire, NodeAddressesWire, NumPongBytesStruct,
+        PointElementWire, SerializationError, ShortChannelIDElement, SignatureElement,
+        SingleByteWire, TLVStreamElement, TimestampElement, TimestampRangeElement, U16IntWire,
+        U16SizedBytesWire, U32IntWire, U64IntWire, Wire32Bytes,
+    },
 };
 
 use num_enum::TryFromPrimitive;
@@ -359,10 +362,26 @@ pub struct NodeAnnouncementMessage {
     signature: [u8; 64],
     features: Vec<u8>,
     timestamp: u32,
-    node_id: [u8; 33],
+    pub node_id: [u8; 33],
     rgb_color: [u8; 3],
     alias: [u8; 32],
     addresses: NodeAddressesWire,
+}
+
+impl NodeAnnouncementMessage {
+    pub fn as_node(&self) -> Node {
+        let ipv4addr = self.addresses.ipv4_addresses.first().unwrap();
+        let ip_address = format!(
+            "{}.{}.{}.{}",
+            ipv4addr[0], ipv4addr[1], ipv4addr[2], ipv4addr[3]
+        );
+        let port = u16::from_be_bytes([ipv4addr[4], ipv4addr[5]]);
+        Node {
+            public_key: self.node_id,
+            ip_address,
+            port,
+        }
+    }
 }
 
 impl BytesSerializable for NodeAnnouncementMessage {

@@ -5,6 +5,7 @@ use crate::util::new_random_secret_key;
 
 use std::env;
 
+mod config;
 mod message_decoder;
 mod messages;
 mod node;

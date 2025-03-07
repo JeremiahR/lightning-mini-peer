@@ -1,3 +1,4 @@
+use crate::config::PING_INTERVAL;
 use crate::message_decoder::MessageContainer;
 use crate::message_decoder::MessageDecoder;
 use crate::messages::PingMessage;
@@ -13,8 +14,6 @@ use crate::node::Node;
 use crate::util::{get_current_timestamp, new_random_secret_key};
 use crate::vendor::PeerChannelEncryptor;
 use std::sync::Arc;
-
-const PING_INTERVAL: u64 = 60;
 
 #[allow(dead_code)]
 #[derive(Debug)]
