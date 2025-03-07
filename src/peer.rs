@@ -31,7 +31,6 @@ impl MiniPeer {
     }
 
     pub async fn event_loop(&mut self) {
-        // TODO: send pings progamatically
         loop {
             let mut inbounds = Vec::new();
             for node_conn in &mut self.node_connections.values_mut() {
@@ -44,6 +43,9 @@ impl MiniPeer {
                         println!("Failed to read: {:?}", err);
                         return;
                     }
+                }
+                if node_conn.ready_for_ping() {
+                    node_conn.send_ping().await.unwrap();
                 }
             }
             for (message, node_public_key) in inbounds {

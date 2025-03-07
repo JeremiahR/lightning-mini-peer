@@ -1,5 +1,6 @@
 use crate::message_decoder::MessageContainer;
 use crate::message_decoder::MessageDecoder;
+use crate::messages::PingMessage;
 use crate::vendor::{KeysManager, LightningError, MessageBuf, NextNoiseStep};
 use bitcoin::secp256k1::PublicKey as BitcoinPublicKey;
 use bitcoin::secp256k1::Secp256k1;
@@ -9,9 +10,11 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
 use crate::node::Node;
-use crate::util::new_random_secret_key;
+use crate::util::{get_current_timestamp, new_random_secret_key};
 use crate::vendor::PeerChannelEncryptor;
 use std::sync::Arc;
+
+const PING_INTERVAL: u64 = 60;
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -28,6 +31,7 @@ pub enum NodeConnectionError {
 
 pub struct NodeConnection {
     pub public_key: [u8; 33],
+    last_contacted: u64,
     stream: TcpStream,
     secp: Secp256k1<SignOnly>,
     peer_encryptor: PeerChannelEncryptor,
@@ -47,6 +51,7 @@ impl NodeConnection {
         println!("Connected to {}", node.display_str());
         Ok(NodeConnection {
             public_key: node.public_key,
+            last_contacted: get_current_timestamp(),
             stream,
             secp: Secp256k1::signing_only(),
             peer_encryptor: PeerChannelEncryptor::new_outbound(
@@ -55,6 +60,23 @@ impl NodeConnection {
             ),
             km: Arc::new(KeysManager::new(&node_secret_key.secret_bytes(), 0, 0)),
         })
+    }
+
+    fn update_last_contacted(&mut self) {
+        self.last_contacted = get_current_timestamp();
+    }
+
+    pub fn ready_for_ping(&self) -> bool {
+        self.last_contacted + PING_INTERVAL < get_current_timestamp()
+    }
+
+    pub async fn send_ping(&mut self) -> Result<(), NodeConnectionError> {
+        let wrapped = MessageContainer::Ping(PingMessage {
+            num_pong_bytes: 100,
+            ignored: [0; 10].to_vec(),
+        });
+        self.encrypt_and_send_message(&wrapped).await?;
+        Ok(())
     }
 
     async fn write_raw_data(&mut self, data: &[u8]) -> Result<(), NodeConnectionError> {
@@ -99,6 +121,8 @@ impl NodeConnection {
             NextNoiseStep::NoiseComplete => println!("Handshake completed with {}", public_key),
             _ => return Err(NodeConnectionError::HandshakeFailed),
         }
+
+        self.update_last_contacted();
         Ok(public_key)
     }
 
@@ -140,6 +164,7 @@ impl NodeConnection {
             Ok(msg) => msg,
             Err(_) => return Err(NodeConnectionError::MessageDecodeError),
         };
+        self.update_last_contacted();
         Ok(message)
     }
 
@@ -160,6 +185,7 @@ impl NodeConnection {
         let bytes = message.to_bytes();
         self.encrypt_and_send_bytes(bytes.as_slice()).await?;
         println!("Sent message {:?}", message);
+        self.update_last_contacted();
         Ok(())
     }
 }
