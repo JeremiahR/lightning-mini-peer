@@ -2,6 +2,7 @@ use crate::config::PING_INTERVAL;
 use crate::message_decoder::MessageContainer;
 use crate::message_decoder::MessageDecoder;
 use crate::messages::PingMessage;
+use crate::serialization::IgnoredBytesElement;
 use crate::vendor::{KeysManager, LightningError, MessageBuf, NextNoiseStep};
 use bitcoin::secp256k1::PublicKey as BitcoinPublicKey;
 use bitcoin::secp256k1::Secp256k1;
@@ -72,7 +73,7 @@ impl NodeConnection {
     pub async fn send_ping(&mut self) -> Result<(), NodeConnectionError> {
         let wrapped = MessageContainer::Ping(PingMessage {
             num_pong_bytes: 100,
-            ignored: [0; 10].to_vec(),
+            ignored: IgnoredBytesElement::new([0; 10].to_vec()),
         });
         self.encrypt_and_send_message(&wrapped).await?;
         Ok(())

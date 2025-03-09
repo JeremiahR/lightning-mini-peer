@@ -114,7 +114,7 @@ impl SerializableToBytes for InitMessage {
 #[derive(Debug)]
 pub struct PingMessage {
     pub num_pong_bytes: u16,
-    pub ignored: Vec<u8>,
+    pub ignored: IgnoredBytesElement,
 }
 
 impl SerializableToBytes for PingMessage {
@@ -125,7 +125,7 @@ impl SerializableToBytes for PingMessage {
         Ok((
             PingMessage {
                 num_pong_bytes: num_pong_bytes.value,
-                ignored: ignored.value,
+                ignored,
             },
             data,
         ))
@@ -135,20 +135,20 @@ impl SerializableToBytes for PingMessage {
         let mut bytes = Vec::new();
         bytes.extend(MessageTypeElement::new(MessageType::Ping).to_bytes());
         bytes.extend(NumPongBytesElement::new(self.num_pong_bytes).to_bytes());
-        bytes.extend(IgnoredBytesElement::new(self.ignored.clone()).to_bytes());
+        bytes.extend(self.ignored.to_bytes());
         bytes
     }
 }
 
 #[derive(Debug)]
 pub struct PongMessage {
-    ignored: Vec<u8>,
+    ignored: IgnoredBytesElement,
 }
 
 impl PongMessage {
     pub fn from_ping(ping: PingMessage) -> Self {
         PongMessage {
-            ignored: vec![0; ping.num_pong_bytes as usize],
+            ignored: IgnoredBytesElement::new(vec![0; ping.num_pong_bytes as usize]),
         }
     }
 }
@@ -157,18 +157,13 @@ impl SerializableToBytes for PongMessage {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         let (_message, data) = MessageTypeElement::from_bytes(data)?;
         let (ignored, data) = IgnoredBytesElement::from_bytes(data)?;
-        Ok((
-            PongMessage {
-                ignored: ignored.value,
-            },
-            data,
-        ))
+        Ok((PongMessage { ignored }, data))
     }
 
     fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.extend(MessageTypeElement::new(MessageType::Pong).to_bytes());
-        bytes.extend(IgnoredBytesElement::new(self.ignored.clone()).to_bytes());
+        bytes.extend(self.ignored.to_bytes());
         bytes
     }
 }

@@ -28,7 +28,7 @@ impl SerializableToBytes for MessageTypeElement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WireU16SizedBytes {
     num_bytes: u16,
     pub value: Vec<u8>,
@@ -63,6 +63,36 @@ impl SerializableToBytes for WireU16SizedBytes {
         let mut bytes = self.num_bytes.to_be_bytes().to_vec();
         bytes.extend(self.value.clone());
         bytes
+    }
+}
+
+#[derive(Clone)]
+pub struct IgnoredBytesElement {
+    pub value: WireU16SizedBytes,
+}
+
+impl IgnoredBytesElement {
+    pub fn new(data: Vec<u8>) -> Self {
+        IgnoredBytesElement {
+            value: WireU16SizedBytes::new(data),
+        }
+    }
+}
+
+impl fmt::Debug for IgnoredBytesElement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "(ignored {} bytes)", self.value.num_bytes)
+    }
+}
+
+impl SerializableToBytes for IgnoredBytesElement {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        let (value, rest) = WireU16SizedBytes::from_bytes(data).unwrap();
+        Ok((IgnoredBytesElement { value }, rest))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.value.to_bytes()
     }
 }
 
@@ -539,7 +569,6 @@ impl SerializableToBytes for RemainderTypeWire {
     }
 }
 
-pub type IgnoredBytesElement = WireU16SizedBytes;
 pub type NumPongBytesElement = WireU16Int;
 pub type GlobalFeaturesElement = WireU16SizedBytes;
 pub type LocalFeaturesStruct = WireU16SizedBytes;
