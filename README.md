@@ -29,7 +29,7 @@ See below for the features that are implemented.
 - [DONE] Ask for and recieve gossip.
 - [DONE] Connect to newly discovered nodes and ask for gossip.
 - [DONE] Decode features from inits, channel and node announcements.
-- Build channel map.
+- Build channel and node maps. Basic version just stores channel_announcement and node_announcement, without checking signatures or processing update messages.
 - Relay gossip.
 - JSON output for debugging.
 - Try on testnet (accept chainhash as cli argument).
