@@ -219,7 +219,7 @@ impl SerializableToBytes for IgnoredBytesElement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeAddressesElement {
     pub ipv4_addresses: Vec<[u8; 6]>,
     pub ipv6_addresses: Vec<[u8; 16]>,
@@ -455,6 +455,7 @@ impl SerializableToBytes for Wire64Bytes {
     }
 }
 
+#[derive(Clone)]
 pub struct SignatureElement {
     value: [u8; 64],
 }
@@ -485,7 +486,7 @@ fn decode_32_bytes(data: &[u8]) -> Result<([u8; 32], &[u8]), SerializationError>
     Ok((bytes, &data[32..]))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Wire32Bytes {
     pub value: [u8; 32],
 }
@@ -501,6 +502,7 @@ impl SerializableToBytes for Wire32Bytes {
     }
 }
 
+#[derive(Clone)]
 pub struct NodeAliasElement {
     pub value: Wire32Bytes,
 }
@@ -576,6 +578,7 @@ impl SerializableToBytes for Wire33Bytes {
     }
 }
 
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct PointElement {
     pub value: [u8; 33],
 }
@@ -617,7 +620,7 @@ impl SerializableToBytes for Bytes8Element {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct ShortChannelIDElement {
     pub block_height: u32,
     pub tx_index: u32,

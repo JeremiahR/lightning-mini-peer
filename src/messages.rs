@@ -168,7 +168,7 @@ impl SerializableToBytes for PongMessage {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ChannelAnnouncementMessage {
     node_signature_1: SignatureElement,
     node_signature_2: SignatureElement,
@@ -176,7 +176,7 @@ pub struct ChannelAnnouncementMessage {
     bitcoin_signature_2: SignatureElement,
     features: FeaturesElement,
     chain_hash: ChainHashElement,
-    short_channel_id: ShortChannelIDElement,
+    pub short_channel_id: ShortChannelIDElement,
     node_id_1: PointElement,
     node_id_2: PointElement,
     bitcoin_node_id_1: PointElement,
@@ -352,7 +352,7 @@ impl SerializableToBytes for ReplyChannelRangeMessage {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeAnnouncementMessage {
     signature: SignatureElement,
     features: FeaturesElement,

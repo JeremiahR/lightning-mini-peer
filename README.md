@@ -34,6 +34,10 @@ See below for the features that are implemented.
 - JSON output for debugging.
 - Try on testnet (accept chainhash as cli argument).
 
+# Known Issues
+
+- SHOULD NOT set features greater than 13 in globalfeatures. (on init message)
+
 # Spec
 
 - What are we building?

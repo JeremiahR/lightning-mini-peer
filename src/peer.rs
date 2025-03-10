@@ -5,10 +5,10 @@ use bitcoin::secp256k1::SecretKey;
 use crate::{
     config::DO_CONNECT_TO_NEW_NODES,
     message_decoder::MessageContainer,
-    messages::{InitMessage, PongMessage},
+    messages::{ChannelAnnouncementMessage, InitMessage, NodeAnnouncementMessage, PongMessage},
     node::Node,
     node_connection::{NodeConnection, NodeConnectionError},
-    serialization::SerializableToBytes,
+    serialization::{PointElement, SerializableToBytes, ShortChannelIDElement},
 };
 
 #[allow(dead_code)]
@@ -21,6 +21,9 @@ pub enum MessageHandlerError {
 pub struct MiniPeer {
     secret_key: SecretKey,
     node_connections: HashMap<[u8; 33], NodeConnection>,
+    // eventually make a channel type not just the announcement message
+    known_channels: HashMap<ShortChannelIDElement, ChannelAnnouncementMessage>,
+    known_nodes: HashMap<PointElement, NodeAnnouncementMessage>,
 }
 
 impl MiniPeer {
@@ -28,6 +31,8 @@ impl MiniPeer {
         MiniPeer {
             secret_key,
             node_connections: HashMap::new(),
+            known_channels: HashMap::new(),
+            known_nodes: HashMap::new(),
         }
     }
 
@@ -105,6 +110,12 @@ impl MiniPeer {
                     .node_connections
                     .contains_key(&announcement.node_id.value)
                 {
+                    if !self.known_nodes.contains_key(&announcement.node_id) {
+                        self.known_nodes
+                            .insert(announcement.node_id.clone(), announcement.clone());
+                        println!("Found new node: {:?}", announcement.node_id.clone());
+                        println!("Known nodes: {}", self.known_nodes.len())
+                    }
                     match announcement.as_node() {
                         Some(node) => {
                             println!("Found new node: {}", node.address());
@@ -122,6 +133,18 @@ impl MiniPeer {
                     }
                 } else {
                     println!("Already connected to node.");
+                }
+            }
+            MessageContainer::ChannelAnnouncement(msg) => {
+                if !self
+                    .known_channels
+                    .contains_key(&msg.short_channel_id.clone())
+                {
+                    self.known_channels
+                        .insert(msg.short_channel_id.clone(), msg.clone());
+                    println!("Found new channel: {:?}", msg.short_channel_id.clone());
+                    println!("Known channels: {}", self.known_channels.len())
+                } else {
                 }
             }
             MessageContainer::GossipTimestampFilter(gtf) => {
