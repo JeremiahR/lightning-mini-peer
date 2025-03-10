@@ -37,7 +37,6 @@ impl MiniPeer {
             for node_conn in &mut self.node_connections.values_mut() {
                 match node_conn.read_next_message().await {
                     Ok(wrapped_message) => {
-                        println!("Received message: {:?}", wrapped_message);
                         inbounds.push((wrapped_message, node_conn.public_key.clone()));
                     }
                     Err(err) => {
@@ -95,7 +94,6 @@ impl MiniPeer {
         let node_conn = self.node_connections.get_mut(&node_public_key).unwrap();
         match wrapped {
             MessageContainer::Ping(ping) => {
-                println!("Responding to ping.");
                 let pong = MessageContainer::Pong(PongMessage::from_ping(ping));
                 match node_conn.encrypt_and_send_message(&pong).await {
                     Ok(_) => (),
@@ -103,26 +101,30 @@ impl MiniPeer {
                 };
             }
             MessageContainer::NodeAnnouncement(announcement) => {
-                println!("Received node announcement.");
                 if !self
                     .node_connections
                     .contains_key(&announcement.node_id.value)
                 {
-                    let node = announcement.as_node();
-                    println!("Found new node: {}", node.address());
-                    if DO_CONNECT_TO_NEW_NODES {
-                        self.open_node_connection(&node).await.unwrap();
-                    } else {
-                        println!(
-                            "Not connecting to new node because DO_CONNECT_TO_NEW_NODES=false."
-                        );
+                    match announcement.as_node() {
+                        Some(node) => {
+                            println!("Found new node: {}", node.address());
+                            if DO_CONNECT_TO_NEW_NODES {
+                                self.open_node_connection(&node).await.unwrap();
+                            } else {
+                                println!(
+                                   "Not connecting to new node because DO_CONNECT_TO_NEW_NODES=false."
+                               );
+                            }
+                        }
+                        None => {
+                            println!("Found no address in node announcement");
+                        }
                     }
                 } else {
                     println!("Already connected to node.");
                 }
             }
             MessageContainer::GossipTimestampFilter(gtf) => {
-                println!("Responding to gossip timestamp filter.");
                 let mut our_filter = gtf.clone();
                 // we ask for all the gossip
                 our_filter.first_timestamp = 0;

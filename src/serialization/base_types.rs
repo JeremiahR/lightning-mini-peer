@@ -367,12 +367,6 @@ pub struct Wire32Bytes {
     pub value: [u8; 32],
 }
 
-impl Wire32Bytes {
-    pub fn new(data: [u8; 32]) -> Self {
-        Wire32Bytes { value: data }
-    }
-}
-
 impl SerializableToBytes for Wire32Bytes {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         let (data, remainder) = decode_32_bytes(data).unwrap();
@@ -381,6 +375,34 @@ impl SerializableToBytes for Wire32Bytes {
 
     fn to_bytes(&self) -> Vec<u8> {
         self.value.to_vec()
+    }
+}
+
+pub struct NodeAliasElement {
+    pub value: Wire32Bytes,
+}
+
+impl fmt::Debug for NodeAliasElement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // find the first byte that is zero
+        let mut i = 0;
+        while i < self.value.value.len() && self.value.value[i] == 0 {
+            i += 1;
+        }
+        // cast the first i bytes to a string
+        let alias = String::from_utf8_lossy(&self.value.value[..i]);
+        write!(f, "\"{}\"", alias)
+    }
+}
+
+impl SerializableToBytes for NodeAliasElement {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        let (data, remainder) = Wire32Bytes::from_bytes(data)?;
+        Ok((NodeAliasElement { value: data }, remainder))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.value.to_bytes()
     }
 }
 
@@ -576,5 +598,3 @@ pub type TimestampElement = WireU32Int;
 pub type TimestampRangeElement = WireU32Int;
 pub type FeaturesElement = WireU16SizedBytes;
 pub type TLVStreamElement = RemainderTypeWire;
-#[allow(dead_code)]
-pub type NodeAliasElement = Wire32Bytes;

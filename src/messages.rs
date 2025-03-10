@@ -2,10 +2,11 @@ use crate::{
     node::Node,
     serialization::{
         ChainHashElement, FeaturesElement, GlobalFeaturesElement, IgnoredBytesElement,
-        LocalFeaturesStruct, MessageTypeElement, NodeAddressesElement, NumPongBytesElement,
-        PointElement, SerializableToBytes, SerializationError, ShortChannelIDElement,
-        SignatureElement, TLVStreamElement, TimestampElement, TimestampRangeElement, Wire1Byte,
-        Wire32Bytes, Wire3Bytes, WireU16Int, WireU16SizedBytes, WireU32Int, WireU64Int,
+        LocalFeaturesStruct, MessageTypeElement, NodeAddressesElement, NodeAliasElement,
+        NumPongBytesElement, PointElement, SerializableToBytes, SerializationError,
+        ShortChannelIDElement, SignatureElement, TLVStreamElement, TimestampElement,
+        TimestampRangeElement, Wire1Byte, Wire3Bytes, WireU16Int, WireU16SizedBytes, WireU32Int,
+        WireU64Int,
     },
 };
 
@@ -359,23 +360,26 @@ pub struct NodeAnnouncementMessage {
     timestamp: u32,
     pub node_id: PointElement,
     rgb_color: [u8; 3],
-    alias: [u8; 32],
+    alias: NodeAliasElement,
     addresses: NodeAddressesElement,
 }
 
 impl NodeAnnouncementMessage {
-    pub fn as_node(&self) -> Node {
-        let ipv4addr = self.addresses.ipv4_addresses.first().unwrap();
+    pub fn as_node(&self) -> Option<Node> {
+        let ipv4addr = match self.addresses.ipv4_addresses.first() {
+            Some(ipv4addr) => ipv4addr,
+            None => return None,
+        };
         let ip_address = format!(
             "{}.{}.{}.{}",
             ipv4addr[0], ipv4addr[1], ipv4addr[2], ipv4addr[3]
         );
         let port = u16::from_be_bytes([ipv4addr[4], ipv4addr[5]]);
-        Node {
+        Some(Node {
             public_key: self.node_id.value,
             ip_address,
             port,
-        }
+        })
     }
 }
 
@@ -387,7 +391,7 @@ impl SerializableToBytes for NodeAnnouncementMessage {
         let (timestamp, data) = WireU32Int::from_bytes(data)?;
         let (node_id, data) = PointElement::from_bytes(data)?;
         let (rgb_color, data) = Wire3Bytes::from_bytes(data)?;
-        let (alias, data) = Wire32Bytes::from_bytes(data)?;
+        let (alias, data) = NodeAliasElement::from_bytes(data)?;
         let (addresses, data) = NodeAddressesElement::from_bytes(data)?;
 
         Ok((
@@ -397,7 +401,7 @@ impl SerializableToBytes for NodeAnnouncementMessage {
                 timestamp: timestamp.value,
                 node_id,
                 rgb_color: rgb_color.value,
-                alias: alias.value,
+                alias,
                 addresses,
             },
             data,
@@ -412,7 +416,7 @@ impl SerializableToBytes for NodeAnnouncementMessage {
         bytes.extend(WireU32Int::new(self.timestamp).to_bytes());
         bytes.extend(self.node_id.to_bytes());
         bytes.extend(Wire3Bytes::new(self.rgb_color).to_bytes());
-        bytes.extend(Wire32Bytes::new(self.alias).to_bytes());
+        bytes.extend(self.alias.to_bytes());
         bytes.extend(self.addresses.to_bytes());
         bytes
     }
