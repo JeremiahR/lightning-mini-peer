@@ -1,12 +1,11 @@
 use crate::{
     node::Node,
     serialization::{
-        ChainHashElement, FeaturesElement, GlobalFeaturesElement, IgnoredBytesElement,
-        LocalFeaturesStruct, MessageTypeElement, NodeAddressesElement, NodeAliasElement,
-        NumPongBytesElement, PointElement, SerializableToBytes, SerializationError,
-        ShortChannelIDElement, SignatureElement, TLVStreamElement, TimestampElement,
-        TimestampRangeElement, Wire1Byte, Wire3Bytes, WireU16Int, WireU16SizedBytes, WireU32Int,
-        WireU64Int,
+        ChainHashElement, FeaturesElement, IgnoredBytesElement, MessageTypeElement,
+        NodeAddressesElement, NodeAliasElement, NumPongBytesElement, PointElement,
+        SerializableToBytes, SerializationError, ShortChannelIDElement, SignatureElement,
+        TLVStreamElement, TimestampElement, TimestampRangeElement, Wire1Byte, Wire3Bytes,
+        WireU16Int, WireU16SizedBytes, WireU32Int, WireU64Int,
     },
 };
 
@@ -79,23 +78,23 @@ impl MessageType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct InitMessage {
-    global_features: Vec<u8>,
-    local_features: Vec<u8>,
+    global_features: FeaturesElement,
+    local_features: FeaturesElement,
     tlv: Vec<u8>,
 }
 
 impl SerializableToBytes for InitMessage {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         let (_message, data) = MessageTypeElement::from_bytes(data)?;
-        let (global_features, data) = GlobalFeaturesElement::from_bytes(data)?;
-        let (local_features, data) = LocalFeaturesStruct::from_bytes(data)?;
+        let (global_features, data) = FeaturesElement::from_bytes(data)?;
+        let (local_features, data) = FeaturesElement::from_bytes(data)?;
         let (tlv, data) = TLVStreamElement::from_bytes(data)?;
         Ok((
             InitMessage {
-                global_features: global_features.value,
-                local_features: local_features.value,
+                global_features,
+                local_features,
                 tlv: tlv.value,
             },
             data,
@@ -105,8 +104,8 @@ impl SerializableToBytes for InitMessage {
     fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.extend(MessageTypeElement::new(MessageType::Init).to_bytes());
-        bytes.extend(GlobalFeaturesElement::new(self.global_features.clone()).to_bytes());
-        bytes.extend(LocalFeaturesStruct::new(self.local_features.clone()).to_bytes());
+        bytes.extend(self.global_features.to_bytes());
+        bytes.extend(self.local_features.to_bytes());
         bytes.extend(TLVStreamElement::new(self.tlv.clone()).to_bytes());
         bytes
     }
@@ -175,7 +174,7 @@ pub struct ChannelAnnouncementMessage {
     node_signature_2: SignatureElement,
     bitcoin_signature_1: SignatureElement,
     bitcoin_signature_2: SignatureElement,
-    features: Vec<u8>,
+    features: FeaturesElement,
     chain_hash: ChainHashElement,
     short_channel_id: ShortChannelIDElement,
     node_id_1: PointElement,
@@ -205,7 +204,7 @@ impl SerializableToBytes for ChannelAnnouncementMessage {
                 node_signature_2,
                 bitcoin_signature_1,
                 bitcoin_signature_2,
-                features: features.value,
+                features,
                 chain_hash,
                 short_channel_id,
                 node_id_1,
@@ -224,7 +223,7 @@ impl SerializableToBytes for ChannelAnnouncementMessage {
         bytes.extend(self.node_signature_2.to_bytes());
         bytes.extend(self.bitcoin_signature_1.to_bytes());
         bytes.extend(self.bitcoin_signature_2.to_bytes());
-        bytes.extend(FeaturesElement::new(self.features.clone()).to_bytes());
+        bytes.extend(self.features.to_bytes());
         bytes.extend(self.chain_hash.to_bytes());
         bytes.extend(self.short_channel_id.to_bytes());
         bytes.extend(self.node_id_1.to_bytes());

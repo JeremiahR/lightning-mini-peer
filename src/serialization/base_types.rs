@@ -67,6 +67,35 @@ impl SerializableToBytes for WireU16SizedBytes {
 }
 
 #[derive(Clone)]
+pub struct FeaturesElement {
+    pub value: WireU16SizedBytes,
+}
+
+impl FeaturesElement {
+    #[allow(dead_code)]
+    pub fn is_empty(&self) -> bool {
+        self.value.value.is_empty()
+    }
+}
+
+impl fmt::Debug for FeaturesElement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "(features: {})", self.value.num_bytes)
+    }
+}
+
+impl SerializableToBytes for FeaturesElement {
+    fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
+        let (value, rest) = WireU16SizedBytes::from_bytes(data).unwrap();
+        Ok((FeaturesElement { value }, rest))
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        self.value.to_bytes()
+    }
+}
+
+#[derive(Clone)]
 pub struct IgnoredBytesElement {
     pub value: WireU16SizedBytes,
 }
@@ -592,9 +621,6 @@ impl SerializableToBytes for RemainderTypeWire {
 }
 
 pub type NumPongBytesElement = WireU16Int;
-pub type GlobalFeaturesElement = WireU16SizedBytes;
-pub type LocalFeaturesStruct = WireU16SizedBytes;
 pub type TimestampElement = WireU32Int;
 pub type TimestampRangeElement = WireU32Int;
-pub type FeaturesElement = WireU16SizedBytes;
 pub type TLVStreamElement = RemainderTypeWire;
