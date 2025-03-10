@@ -355,7 +355,7 @@ impl SerializableToBytes for ReplyChannelRangeMessage {
 #[derive(Debug)]
 pub struct NodeAnnouncementMessage {
     signature: SignatureElement,
-    features: Vec<u8>,
+    features: FeaturesElement,
     timestamp: u32,
     pub node_id: PointElement,
     rgb_color: [u8; 3],
@@ -386,7 +386,7 @@ impl SerializableToBytes for NodeAnnouncementMessage {
     fn from_bytes(data: &[u8]) -> Result<(Self, &[u8]), SerializationError> {
         let (_, data) = MessageTypeElement::from_bytes(data)?;
         let (signature, data) = SignatureElement::from_bytes(data)?;
-        let (features, data) = WireU16SizedBytes::from_bytes(data)?;
+        let (features, data) = FeaturesElement::from_bytes(data)?;
         let (timestamp, data) = WireU32Int::from_bytes(data)?;
         let (node_id, data) = PointElement::from_bytes(data)?;
         let (rgb_color, data) = Wire3Bytes::from_bytes(data)?;
@@ -396,7 +396,7 @@ impl SerializableToBytes for NodeAnnouncementMessage {
         Ok((
             NodeAnnouncementMessage {
                 signature,
-                features: features.value,
+                features,
                 timestamp: timestamp.value,
                 node_id,
                 rgb_color: rgb_color.value,
@@ -411,7 +411,7 @@ impl SerializableToBytes for NodeAnnouncementMessage {
         let mut bytes = Vec::new();
         bytes.extend(MessageTypeElement::new(MessageType::NodeAnnouncement).to_bytes());
         bytes.extend(self.signature.to_bytes());
-        bytes.extend(WireU16SizedBytes::new(self.features.clone()).to_bytes());
+        bytes.extend(self.features.to_bytes());
         bytes.extend(WireU32Int::new(self.timestamp).to_bytes());
         bytes.extend(self.node_id.to_bytes());
         bytes.extend(Wire3Bytes::new(self.rgb_color).to_bytes());

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt;
 
 use crate::messages::MessageType;
@@ -66,6 +67,62 @@ impl SerializableToBytes for WireU16SizedBytes {
     }
 }
 
+#[derive(Debug)]
+pub enum FeatureFlag {
+    Unset,
+    Optional,
+    Compulsory,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub enum Features {
+    DataLossProtect,
+    UpfrontShutdownScript,
+    GossipQueries,
+    OnionOptin,
+    GossipQueriesEx,
+    StaticRemoteKey,
+    PaymentSecret,
+    BasicMPP,
+    SupportLargeChannel,
+    Anchors,
+    RouteBlinding,
+    ShutdownAnySegWit,
+    DualFund,
+    Quiesce,
+    OnionMessages,
+    ProvideStorage,
+    ChannelType,
+    SCIDAlias,
+    PaymentMetadata,
+    ZeroConf,
+    SimpleClose,
+}
+
+const FEATURE_BITS: &[(usize, Features)] = &[
+    (0, Features::DataLossProtect),
+    (4, Features::UpfrontShutdownScript),
+    (6, Features::GossipQueries),
+    (8, Features::OnionOptin),
+    (10, Features::GossipQueriesEx),
+    (12, Features::StaticRemoteKey),
+    (14, Features::PaymentSecret),
+    (16, Features::BasicMPP),
+    (18, Features::SupportLargeChannel),
+    (22, Features::Anchors),
+    (24, Features::RouteBlinding),
+    (26, Features::ShutdownAnySegWit),
+    (28, Features::DualFund),
+    (34, Features::Quiesce),
+    (38, Features::OnionMessages),
+    (42, Features::ProvideStorage),
+    (44, Features::ChannelType),
+    (46, Features::SCIDAlias),
+    (48, Features::PaymentMetadata),
+    (50, Features::ZeroConf),
+    (60, Features::SimpleClose),
+];
+
 #[derive(Clone)]
 pub struct FeaturesElement {
     pub value: WireU16SizedBytes,
@@ -76,11 +133,48 @@ impl FeaturesElement {
     pub fn is_empty(&self) -> bool {
         self.value.value.is_empty()
     }
+
+    pub fn feature_status(&self, feature: &Features) -> FeatureFlag {
+        let bit = FEATURE_BITS.iter().find(|(_, f)| f == feature).unwrap().0;
+        if self.is_bit_set(bit) {
+            FeatureFlag::Compulsory
+        } else if self.is_bit_set(bit + 1) {
+            FeatureFlag::Optional
+        } else {
+            FeatureFlag::Unset
+        }
+    }
+
+    fn is_bit_set(&self, bit: usize) -> bool {
+        if (bit / 8) + 1 > self.value.value.len() {
+            return false;
+        }
+        // false
+        self.value.value[bit / 8] & (1 << (bit % 8)) != 0
+    }
+
+    pub fn features_list(&self) -> HashMap<Features, FeatureFlag> {
+        let mut features = HashMap::new();
+        for (_, feature) in FEATURE_BITS {
+            // this is not efficient because it loops twice, but it's not a big deal for now
+            let status = self.feature_status(feature);
+            match status {
+                FeatureFlag::Compulsory => {
+                    features.insert(feature.clone(), status);
+                }
+                FeatureFlag::Optional => {
+                    features.insert(feature.clone(), status);
+                }
+                FeatureFlag::Unset => (),
+            };
+        }
+        features
+    }
 }
 
 impl fmt::Debug for FeaturesElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(features: {})", self.value.num_bytes)
+        write!(f, "(features: {:?})", self.features_list())
     }
 }
 

@@ -28,6 +28,7 @@ See below for the features that are implemented.
 - [DONE] Send pings, recieve pongs, respond to pongs.
 - [DONE] Ask for and recieve gossip.
 - [DONE] Connect to newly discovered nodes and ask for gossip.
+- [DONE] Decode features from inits, channel and node announcements.
 - Build channel map.
 - Relay gossip.
 - JSON output for debugging.
