@@ -9,9 +9,9 @@ Goals:
 
 # Usage
 
-Setup a lightning network in Polar. Copy the "P2P External" address of one node, it looks like this "02689e38c2b9a9142ced61c080165dd724456970c3fa2ef09fc042149d85892bd5@127.0.0.1:9839"
+Setup a lightning network in Polar. Copy the "P2P External" address of every node you want to monitor. A p2p external address looks like this: "02689e38c2b9a9142ced61c080165dd724456970c3fa2ef09fc042149d85892bd5@127.0.0.1:9839"
 
-Run `cargo run <nodeid>`
+Run `cargo run <node_1> ... <node_n>`
 
 See below for the features that are implemented.
 

@@ -36,22 +36,37 @@ impl MiniPeer {
         }
     }
 
+    pub fn num_connections(&self) -> usize {
+        self.node_connections.len()
+    }
+
     pub async fn event_loop(&mut self) {
         loop {
             let mut inbounds = Vec::new();
+            let mut disconnects = Vec::new();
             for node_conn in &mut self.node_connections.values_mut() {
                 match node_conn.read_next_message().await {
                     Ok(wrapped_message) => {
                         inbounds.push((wrapped_message, node_conn.public_key.clone()));
                     }
                     Err(err) => {
-                        println!("Failed to read: {:?}", err);
-                        return;
+                        match err {
+                            NodeConnectionError::IOError(_) => {
+                                disconnects.push(node_conn.public_key.clone());
+                            }
+                            _ => {
+                                println!("Failed to read: {:?}", err);
+                            }
+                        }
+                        continue;
                     }
                 }
                 if node_conn.ready_for_ping() {
                     node_conn.send_ping().await.unwrap();
                 }
+            }
+            for node_public_key in disconnects {
+                self.node_connections.remove(&node_public_key);
             }
             for (message, node_public_key) in inbounds {
                 self.handle_inbound_message(message, node_public_key)

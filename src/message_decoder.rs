@@ -18,11 +18,11 @@ pub enum MessageContainer {
     Ping(PingMessage),
     Pong(PongMessage),
     ChannelAnnouncement(ChannelAnnouncementMessage),
+    ChannelUpdate(ChannelUpdateMessage),
     NodeAnnouncement(NodeAnnouncementMessage),
     GossipTimestampFilter(GossipTimestampFilterMessage),
     QueryChannelRange(QueryChannelRangeMessage),
     ReplyChannelRange(ReplyChannelRangeMessage),
-    ChannelUpdate(ChannelUpdateMessage),
     Unknown(UnknownMessage),
 }
 
